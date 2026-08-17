@@ -87,6 +87,30 @@
       "dependencies": ["feat-002", "feat-004"],
       "status": "not-started",
       "evidence": ""
+    },
+    {
+      "id": "feat-012",
+      "name": "Future: Voice Input",
+      "description": "Student voice input / transcription. Recorded as a phase-2 extension; NOT implemented in phase 1. Skeleton must not couple the chat UI to audio (no half-built features).",
+      "dependencies": [],
+      "status": "not-started",
+      "evidence": "Recorded 2026-08-18 per user decision Q19; ADR to be written with final stack confirmation."
+    },
+    {
+      "id": "feat-013",
+      "name": "Future: Exam Mode & Countdown",
+      "description": "Timed mode with countdown, random question selection, formal score statistics. Recorded as a phase-2 extension; NOT implemented in phase 1.",
+      "dependencies": [],
+      "status": "not-started",
+      "evidence": "Recorded 2026-08-18 per user decision Q19."
+    },
+    {
+      "id": "feat-014",
+      "name": "Future: Batch Case Import",
+      "description": "Batch Excel/JSON import of cases. Recorded as a phase-2 extension; NOT implemented in phase 1 (developer-led structured-file entry + seed script instead).",
+      "dependencies": ["feat-010"],
+      "status": "not-started",
+      "evidence": "Recorded 2026-08-18 per user decision Q19."
     }
   ]
 }

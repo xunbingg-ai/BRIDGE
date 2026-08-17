@@ -3,7 +3,7 @@
 ## Current State
 
 **Last Updated:** 2026-08-18
-**Session ID:** 003
+**Session ID:** 004
 **Active Feature:** feat-001 - Project Setup & Verification
 
 ## Status
@@ -22,6 +22,9 @@
 - [x] Grill Round 1 completed (grill-with-docs): 12 decisions answered by user (see Decisions Made)
 - [x] Verified dev environment facts: WSL2 Ubuntu (default distro) + Docker Desktop installed; repo stays at D:\BRIDGE, commands run in WSL
 - [x] Installed deep-module working rule into AGENTS.md (codebase-design vocabulary)
+- [x] Grill Round 2 completed (Q13/Q15/Q16/Q17/Q18/Q19 answered; Q14 delegated to agent research; Q8 pending re-ask)
+- [x] Q14 researched and decided: shadcn/ui + Tailwind (fastest-growing, AI-native ecosystem, 0 deps, own-the-code; Ant Design rejected for data-dense CRUD orientation and large prop surface)
+- [x] Phase-2 extensions (voice input, exam mode/countdown, batch import) added to feature_list.json as not-started
 
 ### What's In Progress
 
@@ -64,6 +67,15 @@
   - Q10 语言：学过 Python、未接触 JS 但愿意学 → 方案 A（FastAPI + React）
   - Q11 系统对接：无
   - Q12 二阶段展望：语音输入、倒计时、导入病例
+- **Round 2 grill answers (2026-08-18)**:
+  - Q13 数据库：开发 SQLite，上线 PostgreSQL（SQLAlchemy + Alembic）
+  - Q14 UI 组件库：委托调研 → 决定 shadcn/ui + Tailwind（详见 docs/tech-stack-research.md）
+  - Q15 界面语言：硬编码英文，不上 i18n 框架
+  - Q16 真人病例脱敏：采纳（入库前脱敏、不进日志、仅校内存储）
+  - Q17 演示范围：登录（管理员预建账号）→ 学生端完整跑通 1 个病例 → 教师端基础完成统计
+  - Q18 开发环境：仓库留在 D:\BRIDGE，命令在 WSL（Ubuntu 2）执行
+  - Q19 二期扩展：只记录不实现；已写入 feature_list.json（feat-012/013/014）
+  - Q8 预算：**待用户重新回答**
 
 ## Files Modified This Session
 
@@ -78,6 +90,7 @@
 - `docs/tech-stack-research.md` - research report (similar platforms, DeepSeek API, stack proposal)
 - `CONTEXT.md` - domain glossary (added De-identification, Exam Mode, English-UI rule)
 - `AGENTS.md` - added deep-module working rule
+- `feature_list.json` - added future features feat-012/013/014 (not-started)
 
 ## Evidence of Completion
 

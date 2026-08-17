@@ -42,6 +42,20 @@
 
 **倾向：方案 A；若 E1 回答"完全不想碰 JavaScript"，改选方案 B。** 评分和考站状态机一律放后端，前端只负责展示。
 
+### UI 组件库（2026-08-18 调研决定）
+
+**决定：shadcn/ui + Tailwind CSS。**
+
+| 维度 | shadcn/ui | Ant Design | MUI |
+|---|---|---|---|
+| GitHub stars / 增长 | ~109k，年增长约 10x | ~98k，约 1.5x | ~97k，约 2.3x |
+| npm 依赖 | 0（代码复制进项目，自己拥有） | 48 | 12 |
+| 体积 | ~15–18KB | ~120KB | ~95KB |
+| AI 生态 | Vercel AI Elements、chatbot kits、AI 主题工具 | 弱 | 中 |
+| 强项 | 自定义聊天/AI 界面、Tailwind 生态 | 数据密集型后台 CRUD（Table/Form/Pro） | 大规模采用、组件全 |
+
+理由：本项目是自定义聊天 + 考站流程界面，不是标准后台 CRUD；shadcn 组件源码进仓库、AI agent 可直接改；聊天组件生态直接可用；与"深度模块"哲学一致（小而组合的接口）。Ant Design 留作备选（若未来教师端变成重型数据后台再评估）。
+
 ## 4. 骨架草案（方案 A）
 
 ```
