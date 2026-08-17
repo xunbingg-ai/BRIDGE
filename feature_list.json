@@ -6,12 +6,20 @@
       "description": "Decide tech stack, scaffold the application, and make ./init.sh run real verification from a clean checkout. Harness files (AGENTS.md, feature_list.json, progress.md, init.sh, session-handoff.md) are already in place.",
       "dependencies": [],
       "status": "in-progress",
-      "evidence": "Harness created 2026-08-17 via harness-creator skill. Source docs read: BRIDGE - 首期需求文档.md, Case repository - Template(1).xlsx, Example teaching case.md."
+      "evidence": "Harness created 2026-08-17 via harness-creator skill. Source docs read. 2026-08-18: AI provider decided (DeepSeek V4 Flash 0731); tech-stack research done (docs/tech-stack-research.md); final stack pending grill-me interview (docs/tech-stack-questions.md)."
+    },
+    {
+      "id": "feat-011",
+      "name": "AI Provider Integration (DeepSeek V4 Flash)",
+      "description": "Configure DeepSeek V4 Flash (0731) as the AI provider for the standardized patient dialogue and scoring/feedback. API key supplied via environment variable by the user (registered separately). No hardcoded credentials.",
+      "dependencies": ["feat-001"],
+      "status": "not-started",
+      "evidence": ""
     },
     {
       "id": "feat-010",
-      "name": "Case Data Model & First Seed Case",
-      "description": "Case data structure per requirements section 9 (Case, PatientInformation, ExaminerPack, CaseReviewRecord) and a first published seed case derived from the Cecilia example (GP-ChestPain-0001).",
+      "name": "Case Data Model & Developer Seed Workflow",
+      "description": "Case data structure per requirements section 9 (Case, PatientInformation, ExaminerPack, CaseReviewRecord). Phase-1 cases are authored by developers as structured files (no web form, per decision 2026-08-18) and loaded via a seed/import script. First seed case: Cecilia (GP-ChestPain-0001).",
       "dependencies": ["feat-001"],
       "status": "not-started",
       "evidence": ""
@@ -44,7 +52,7 @@
       "id": "feat-005",
       "name": "AI Standardized Patient (History Taking)",
       "description": "Student asks history questions in text; AI plays the patient only, answering from the case script. Never gives diagnosis/answers/scoring points, never fabricates examination or investigation results.",
-      "dependencies": ["feat-004"],
+      "dependencies": ["feat-004", "feat-011"],
       "status": "not-started",
       "evidence": ""
     },
@@ -68,7 +76,7 @@
       "id": "feat-008",
       "name": "AI Scoring, Feedback & Reference Answers",
       "description": "AI gives a practice reference score and feedback from the rubric; student sees reference answers and teaching explanations after completion. No formal score when the case has no rubric.",
-      "dependencies": ["feat-004", "feat-007"],
+      "dependencies": ["feat-004", "feat-007", "feat-011"],
       "status": "not-started",
       "evidence": ""
     },
