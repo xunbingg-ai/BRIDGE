@@ -1,0 +1,24 @@
+# BRIDGE — AI 标准化病人 OSCE/CCE 教学病例库平台
+
+面向医学生的 OSCE（客观结构化临床考试）训练网站。首期交付一套可试用的 AI 标准化病人 CCE 练习系统：学生无需真人结对，即可按考站流程完成问病史、病例汇报、结构化问答、结果揭示和 AI 参考评分（练习模式，非正式考试）。
+
+## 源文档
+
+- `BRIDGE - 首期需求文档.md` — 首期需求与验收边界（权威依据）
+- `Case repository - Template(1).xlsx` — 病例录入模板
+- `Example teaching case.md` — Cecilia 示例病例（GP-ChestPain-0001）
+- `Building BRIDGE Between English-medium Medical Training and Chinese Clinical Practice...pdf` — 背景论文（签署版）
+
+## 开发约定（harness）
+
+- `AGENTS.md` — agent 工作规则：启动流程、工作规则、完成定义
+- `feature_list.json` — 特性状态跟踪（唯一事实源）
+- `progress.md` — 会话进度日志
+- `init.sh` — 标准启动与验证入口
+- `session-handoff.md` — 会话交接模板
+
+规则：一次只做一个特性；完成前必须运行验证命令；证据写入状态文件；离开时保持仓库可从标准启动路径直接运行。
+
+## 当前状态
+
+首期范围：CCE station 练习模式。技术栈待定（见 `progress.md`，feat-001）。

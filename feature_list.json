@@ -1,0 +1,84 @@
+{
+  "features": [
+    {
+      "id": "feat-001",
+      "name": "Project Setup & Verification",
+      "description": "Decide tech stack, scaffold the application, and make ./init.sh run real verification from a clean checkout. Harness files (AGENTS.md, feature_list.json, progress.md, init.sh, session-handoff.md) are already in place.",
+      "dependencies": [],
+      "status": "in-progress",
+      "evidence": "Harness created 2026-08-17 via harness-creator skill. Source docs read: BRIDGE - 首期需求文档.md, Case repository - Template(1).xlsx, Example teaching case.md."
+    },
+    {
+      "id": "feat-010",
+      "name": "Case Data Model & First Seed Case",
+      "description": "Case data structure per requirements section 9 (Case, PatientInformation, ExaminerPack, CaseReviewRecord) and a first published seed case derived from the Cecilia example (GP-ChestPain-0001).",
+      "dependencies": ["feat-001"],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-002",
+      "name": "Student & Teacher Login",
+      "description": "Account login for students and teachers (first-phase requirement 3.1). No campus SSO in phase 1.",
+      "dependencies": ["feat-001"],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-003",
+      "name": "Practice Case List",
+      "description": "Students see the list of practiceable published cases and can enter a CCE station.",
+      "dependencies": ["feat-001", "feat-010"],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-004",
+      "name": "CCE Station Flow Shell",
+      "description": "Section-by-section CCE practice flow: student instruction -> history taking -> case presentation -> structured questions -> scoring/feedback. Sequential order only, no going back, resume after mid-way exit, per-section language rules (no mixed languages in one section).",
+      "dependencies": ["feat-003"],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-005",
+      "name": "AI Standardized Patient (History Taking)",
+      "description": "Student asks history questions in text; AI plays the patient only, answering from the case script. Never gives diagnosis/answers/scoring points, never fabricates examination or investigation results.",
+      "dependencies": ["feat-004"],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-006",
+      "name": "Case Presentation Input",
+      "description": "Student submits a case presentation in the language configured for that section.",
+      "dependencies": ["feat-004"],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-007",
+      "name": "Structured Questions & Investigation Reveal",
+      "description": "One-by-one structured questions (diagnostic + management reasoning). Student-request-driven physical exam / investigation result reveal matched against the case item library; unconfigured items show 'not provided'; revealed results stay pinned for later questions.",
+      "dependencies": ["feat-004"],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-008",
+      "name": "AI Scoring, Feedback & Reference Answers",
+      "description": "AI gives a practice reference score and feedback from the rubric; student sees reference answers and teaching explanations after completion. No formal score when the case has no rubric.",
+      "dependencies": ["feat-004", "feat-007"],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-009",
+      "name": "Teacher Dashboard (Basic Completion Stats)",
+      "description": "Teachers can view basic practice completion status. No manual grading, no score override, no long-term per-student history in phase 1.",
+      "dependencies": ["feat-002", "feat-004"],
+      "status": "not-started",
+      "evidence": ""
+    }
+  ]
+}
