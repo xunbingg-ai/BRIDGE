@@ -3,7 +3,7 @@
 ## Current State
 
 **Last Updated:** 2026-08-18
-**Session ID:** 004
+**Session ID:** 005
 **Active Feature:** feat-001 - Project Setup & Verification
 
 ## Status
@@ -25,12 +25,14 @@
 - [x] Grill Round 2 completed (Q13/Q15/Q16/Q17/Q18/Q19 answered; Q14 delegated to agent research; Q8 pending re-ask)
 - [x] Q14 researched and decided: shadcn/ui + Tailwind (fastest-growing, AI-native ecosystem, 0 deps, own-the-code; Ant Design rejected for data-dense CRUD orientation and large prop surface)
 - [x] Phase-2 extensions (voice input, exam mode/countdown, batch import) added to feature_list.json as not-started
+- [x] Q8 answered (2026-08-18): no budget cap for now; cost visibility deferred until real student rollout
+- [x] Design-tree frontier is empty — grill interview complete; awaiting final shared-understanding confirmation before writing ADRs and scaffolding
 
 ### What's In Progress
 
-- [ ] Run the grill-me interview (skill to be installed by user) and finalize the tech stack + scaffold
-  - Details: proposal ready in `docs/tech-stack-research.md` (方案 A: FastAPI + React + SQLite→Postgres); pending answers to `docs/tech-stack-questions.md`
-  - Blockers: user needs to install the chosen skill; then answer A1/A3/C1/D1/E1 (or confirm defaults)
+- [ ] Final shared-understanding confirmation from user, then write ADRs and scaffold in WSL
+  - Details: all grill rounds complete; stack locked (FastAPI + React + shadcn/ui; SQLite→Postgres)
+  - Blockers: awaiting user confirmation
 
 ### What's Next
 
@@ -41,9 +43,10 @@
 
 ## Blockers / Risks
 
-- [ ] Tech stack undecided — impact: cannot scaffold application code; mitigation: decide in next session
+- [x] Tech stack — RESOLVED 2026-08-18 via grill Rounds 1–2 (FastAPI + React + shadcn/ui; SQLite dev / Postgres prod)
 - [x] Requirements inconsistency (web-form case authoring) — RESOLVED 2026-08-18: phase-1 cases are entered by developers via structured files + seed script; no web form
 - [ ] DeepSeek API key not yet registered by user — impact: blocks live testing of feat-005/feat-008; mitigation: provider adapter reads key from environment variable
+- [ ] API 成本无上限/无统计 — 用户决策"先不设上限，等真实使用再说"；正式给学生用之前必须补用量与成本可见性，避免账单失控
 
 ## Decisions Made
 
@@ -62,7 +65,7 @@
   - Q5 界面语言：**英文**（有国际生）；病例内容语言按配置
   - Q6 账号：管理员（开发者）创建账号 + 密码登录
   - Q7 隐私：仅校内教学使用；**病例可能基于真人**，须脱敏；学生数据密码加密；不做第三方分析
-  - Q8 预算：未回答 → 按推荐执行（¥100/月上限 + 用量提示），有异议随时改
+  - Q8 预算：初答被吞，最终答案见 Round 2
   - Q9 维护：只有用户 + AI agent；要求**深度抽象、禁止浅模块**
   - Q10 语言：学过 Python、未接触 JS 但愿意学 → 方案 A（FastAPI + React）
   - Q11 系统对接：无
@@ -75,7 +78,7 @@
   - Q17 演示范围：登录（管理员预建账号）→ 学生端完整跑通 1 个病例 → 教师端基础完成统计
   - Q18 开发环境：仓库留在 D:\BRIDGE，命令在 WSL（Ubuntu 2）执行
   - Q19 二期扩展：只记录不实现；已写入 feature_list.json（feat-012/013/014）
-  - Q8 预算：**待用户重新回答**
+  - Q8 预算：**不设上限**；等真实学生使用前再定用量统计与成本控制
 
 ## Files Modified This Session
 
