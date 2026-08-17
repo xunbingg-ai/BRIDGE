@@ -16,6 +16,9 @@
 - `progress.md` — 会话进度日志
 - `init.sh` — 标准启动与验证入口
 - `session-handoff.md` — 会话交接模板
+- `docs/STARTUP-CHECKLIST.md` — 启动就绪清单（每次会话必读）
+- `docs/TASK-BREAKDOWN.md` — 子任务分解与验收标准
+- `docs/adr/` — 架构决策记录
 
 规则：一次只做一个特性；完成前必须运行验证命令；证据写入状态文件；离开时保持仓库可从标准启动路径直接运行。
 

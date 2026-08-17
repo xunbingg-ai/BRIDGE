@@ -3,7 +3,7 @@
 ## Current State
 
 **Last Updated:** 2026-08-18
-**Session ID:** 007
+**Session ID:** 008
 **Active Feature:** feat-001 - Project Setup & Verification
 
 ## Status
@@ -33,11 +33,15 @@
 - [x] Skeleton scaffolded: backend FastAPI (health API + pytest), frontend Vite+React+TS+Tailwind v4+shadcn config, scripts/setup-dev.sh, init.sh with real verification
 - [x] `./init.sh` verification PASSES in WSL: backend pytest 1 passed; frontend typecheck clean; production build OK
 - [x] feat-001 marked COMPLETED in feature_list.json with evidence
+- [x] Checkpoint verified: git working tree clean at `f6e7ff2`; `init.sh` re-run green; harness validation 100/100
+- [x] Wrote `docs/STARTUP-CHECKLIST.md` (startup readiness checklist for future sessions)
+- [x] Wrote `docs/TASK-BREAKDOWN.md` (subtasks with acceptance criteria for feat-010/011/002/003/004/005/006/007/008/009)
+- [x] Updated `session-handoff.md` (current objective, evidence, blockers, next step) and AGENTS.md startup workflow
 
 ### What's In Progress
 
-- [ ] feat-001 complete — next active feature to pick
-  - Details: see What's Next below
+- [ ] Start feat-010 (case data model & developer seed workflow) — T-010.1 domain models
+  - Details: acceptance criteria in docs/TASK-BREAKDOWN.md
   - Blockers: none
 
 ### What's Next
@@ -109,6 +113,10 @@
 - `scripts/setup-dev.sh` - dependency install script (WSL)
 - `init.sh` - replaced placeholder with real verification (pytest + typecheck + build)
 - `README.md` - added WSL development instructions
+- `docs/STARTUP-CHECKLIST.md` - startup readiness checklist
+- `docs/TASK-BREAKDOWN.md` - subtask decomposition with acceptance criteria
+- `session-handoff.md` - filled with current objective/evidence/next step
+- `AGENTS.md` - startup workflow now routes through STARTUP-CHECKLIST + TASK-BREAKDOWN
 
 ## Evidence of Completion
 
@@ -118,6 +126,7 @@
 - [x] Type check clean: `npm run typecheck` (tsc -b) exit 0
 - [x] Backend tests: `uv run pytest -q` → 1 passed
 - [x] Frontend build: `npm run build` → vite build succeeded (218.37 kB JS, 7.98 kB CSS)
+- [x] Checkpoint verification (2026-08-18): `init.sh` re-run → backend 1 passed, typecheck clean, build OK; harness validation 100/100; `git status` clean
 
 ## Notes for Next Session
 
