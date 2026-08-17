@@ -3,7 +3,7 @@
 ## Current State
 
 **Last Updated:** 2026-08-18
-**Session ID:** 002
+**Session ID:** 003
 **Active Feature:** feat-001 - Project Setup & Verification
 
 ## Status
@@ -19,6 +19,9 @@
 - [x] GitHub research: grill-me family skill ranked by stars (crucible 1183, grill-me-skill 235); superpowers noted as highest-star overall collection
 - [x] Web research on similar platforms (MedSimAI, SimChat, Monash MOVE, Cortex), DeepSeek V4 Flash API, and common AI-chat stacks
 - [x] Created `docs/tech-stack-questions.md` (grill-me questions, non-engineer friendly) and `docs/tech-stack-research.md` (findings + stack proposal)
+- [x] Grill Round 1 completed (grill-with-docs): 12 decisions answered by user (see Decisions Made)
+- [x] Verified dev environment facts: WSL2 Ubuntu (default distro) + Docker Desktop installed; repo stays at D:\BRIDGE, commands run in WSL
+- [x] Installed deep-module working rule into AGENTS.md (codebase-design vocabulary)
 
 ### What's In Progress
 
@@ -48,6 +51,19 @@
 - **Case authoring path (2026-08-18)**: no web form in phase 1; developers author cases as structured files loaded by a seed script
 - **AI provider (2026-08-18)**: DeepSeek V4 Flash (0731) for standardized patient + scoring; user registers API key and supplies it via env var
 - **Grill-me skill (2026-08-18)**: recommend chaseai-yt/crucible (1183 stars, grill-me family highest) with RobMitt/grill-me-skill (235 stars) as the portable fallback
+- **Round 1 grill answers (2026-08-18)**:
+  - Q1 规模：预期几十人，最多 100+ 并发 → 数据库按上线 Postgres 设计
+  - Q2 时间：一个月内给老师演示；2–4 周跑通一个完整病例 MVP，骨架可扩展
+  - Q3 部署：开发在本人笔记本 WSL（Ubuntu 2）里跑；上线 Linux 服务器（学校或云）
+  - Q4 设备：电脑 Web UI，首期不做手机适配测试
+  - Q5 界面语言：**英文**（有国际生）；病例内容语言按配置
+  - Q6 账号：管理员（开发者）创建账号 + 密码登录
+  - Q7 隐私：仅校内教学使用；**病例可能基于真人**，须脱敏；学生数据密码加密；不做第三方分析
+  - Q8 预算：未回答 → 按推荐执行（¥100/月上限 + 用量提示），有异议随时改
+  - Q9 维护：只有用户 + AI agent；要求**深度抽象、禁止浅模块**
+  - Q10 语言：学过 Python、未接触 JS 但愿意学 → 方案 A（FastAPI + React）
+  - Q11 系统对接：无
+  - Q12 二阶段展望：语音输入、倒计时、导入病例
 
 ## Files Modified This Session
 
@@ -60,6 +76,8 @@
 - `.gitignore` - initial ignore rules
 - `docs/tech-stack-questions.md` - grill-me interview questions for stack/scaffold decisions
 - `docs/tech-stack-research.md` - research report (similar platforms, DeepSeek API, stack proposal)
+- `CONTEXT.md` - domain glossary (added De-identification, Exam Mode, English-UI rule)
+- `AGENTS.md` - added deep-module working rule
 
 ## Evidence of Completion
 

@@ -22,6 +22,7 @@ If baseline verification is failing, repair that first before adding new scope.
 - **Update artifacts**: Before ending session, update `progress.md` and `feature_list.json`
 - **Stay in scope**: Don't modify files unrelated to the current feature
 - **Leave clean state**: Next session must be able to run `./init.sh` immediately
+- **Prefer deep modules**: Hide complex behavior behind small, simple interfaces; avoid shallow pass-through modules (see `codebase-design` skill vocabulary)
 
 ## Required Artifacts
 
