@@ -3,7 +3,7 @@
 ## Current State
 
 **Last Updated:** 2026-08-18
-**Session ID:** 005
+**Session ID:** 007
 **Active Feature:** feat-001 - Project Setup & Verification
 
 ## Status
@@ -27,19 +27,25 @@
 - [x] Phase-2 extensions (voice input, exam mode/countdown, batch import) added to feature_list.json as not-started
 - [x] Q8 answered (2026-08-18): no budget cap for now; cost visibility deferred until real student rollout
 - [x] Design-tree frontier is empty — grill interview complete; awaiting final shared-understanding confirmation before writing ADRs and scaffolding
+- [x] Shared understanding CONFIRMED by user (2026-08-18): FastAPI + React
+- [x] ADRs written: 0001 stack, 0002 de-identification, 0003 future extensions, 0004 DeepSeek provider
+- [x] WSL toolchain installed: node 24.19.0, npm 11.17.0, uv 0.12.5 (python 3.14.4 present)
+- [x] Skeleton scaffolded: backend FastAPI (health API + pytest), frontend Vite+React+TS+Tailwind v4+shadcn config, scripts/setup-dev.sh, init.sh with real verification
+- [x] `./init.sh` verification PASSES in WSL: backend pytest 1 passed; frontend typecheck clean; production build OK
+- [x] feat-001 marked COMPLETED in feature_list.json with evidence
 
 ### What's In Progress
 
-- [ ] Final shared-understanding confirmation from user, then write ADRs and scaffold in WSL
-  - Details: all grill rounds complete; stack locked (FastAPI + React + shadcn/ui; SQLite→Postgres)
-  - Blockers: awaiting user confirmation
+- [ ] feat-001 complete — next active feature to pick
+  - Details: see What's Next below
+  - Blockers: none
 
 ### What's Next
 
-1. Choose the stack and scaffold the application (feat-001)
+1. Define the case data model and developer seed workflow, then import Cecilia (feat-010)
 2. Integrate the DeepSeek V4 Flash provider adapter (feat-011)
-3. Define the case data model and developer seed workflow, then import Cecilia (feat-010)
-4. Implement student & teacher login (feat-002)
+3. Implement student & teacher login (feat-002)
+4. Practice case list (feat-003) and CCE station flow shell (feat-004)
 
 ## Blockers / Risks
 
@@ -94,13 +100,24 @@
 - `CONTEXT.md` - domain glossary (added De-identification, Exam Mode, English-UI rule)
 - `AGENTS.md` - added deep-module working rule
 - `feature_list.json` - added future features feat-012/013/014 (not-started)
+- `docs/adr/0001-stack-fastapi-react.md` - tech stack decision
+- `docs/adr/0002-de-identification-and-privacy.md` - privacy constraint
+- `docs/adr/0003-future-extensions-not-implemented.md` - phase-2 scope boundary
+- `docs/adr/0004-deepseek-provider.md` - AI provider decision
+- `backend/` - FastAPI skeleton (app/, tests/, pyproject.toml, uv.lock)
+- `frontend/` - Vite + React + TS + Tailwind v4 + shadcn config skeleton
+- `scripts/setup-dev.sh` - dependency install script (WSL)
+- `init.sh` - replaced placeholder with real verification (pytest + typecheck + build)
+- `README.md` - added WSL development instructions
 
 ## Evidence of Completion
 
 - [x] Harness validation: `validate-harness.mjs` → **Overall 100/100**; instructions 5/5, state 5/5, verification 5/5, scope 5/5, lifecycle 5/5
 - [x] `./init.sh` runs cleanly (Git Bash): prints `Harness Initialization` → `Verification Complete`; placeholder verification command runs as expected (no package manifest yet)
 - [x] Research deliverables: both docs reviewed before commit; facts sourced from official DeepSeek changelog/apidog guide, Cornell MedSimAI article, Geeky Medics, BMC Medical Education, Monash
-- [ ] Type check clean: N/A (no stack chosen yet)
+- [x] Type check clean: `npm run typecheck` (tsc -b) exit 0
+- [x] Backend tests: `uv run pytest -q` → 1 passed
+- [x] Frontend build: `npm run build` → vite build succeeded (218.37 kB JS, 7.98 kB CSS)
 
 ## Notes for Next Session
 

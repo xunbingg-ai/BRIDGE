@@ -22,3 +22,23 @@
 ## 当前状态
 
 首期范围：CCE station 练习模式。技术栈待定（见 `progress.md`，feat-001）。
+
+## 开发环境（WSL）
+
+开发命令统一在 WSL（Ubuntu 2）里运行，仓库位于 `D:\BRIDGE`（WSL 内路径 `/mnt/d/BRIDGE`），与线上 Linux 环境保持一致。
+
+```bash
+# 首次安装依赖
+bash scripts/setup-dev.sh
+
+# 完整验证（后端 pytest + 前端 typecheck + build）
+bash init.sh
+
+# 后端开发服务器
+cd backend && uv run uvicorn app.main:app --reload
+
+# 前端开发服务器
+cd frontend && npm run dev
+```
+
+技术栈：FastAPI（Python）+ React + TypeScript + Vite + Tailwind v4 + shadcn/ui；开发用 SQLite，上线 PostgreSQL。决策记录见 `docs/adr/`。

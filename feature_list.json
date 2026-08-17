@@ -5,8 +5,8 @@
       "name": "Project Setup & Verification",
       "description": "Decide tech stack, scaffold the application, and make ./init.sh run real verification from a clean checkout. Harness files (AGENTS.md, feature_list.json, progress.md, init.sh, session-handoff.md) are already in place.",
       "dependencies": [],
-      "status": "in-progress",
-      "evidence": "Harness created 2026-08-17 via harness-creator skill. Source docs read. 2026-08-18: AI provider decided (DeepSeek V4 Flash 0731); tech-stack research done (docs/tech-stack-research.md); final stack pending grill-me interview (docs/tech-stack-questions.md)."
+      "status": "completed",
+      "evidence": "Stack locked via grill-with-docs (FastAPI + React + shadcn/ui; SQLite dev -> Postgres prod). Skeleton scaffolded 2026-08-18: backend FastAPI health API + pytest (1 passed); frontend Vite 8 / React 19 / TS 6 / Tailwind 4 + shadcn config. ./init.sh runs real verification in WSL (Ubuntu): backend pytest PASS, frontend typecheck CLEAN, production build OK. WSL toolchain: node 24.19.0, npm 11.17.0, uv 0.12.5, python 3.14.4."
     },
     {
       "id": "feat-011",
