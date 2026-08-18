@@ -77,6 +77,37 @@ dsh 的价值是"V4-Pro 启动钥匙"的研究价值，不是稳定开发环境�
 4. **子代理恢复路径**（若用户坚持要子代理）：`~/.codex/models.json` 中 DeepSeek 条目 `multi_agent_version` 改 `"v1"`（issue #36586 验证过的 workaround）；或安装社区代理补丁（第三方代码，需另行确认）。
 5. 本 session 推进顺序：Task 4（case JSON schema + 格式文档 + TDD 测试）→ Task 5（中文种子脚本 + GP-ChestPain-0001.json）→ Task 6（导入测试）→ Task 7/8/9（SP / 评分 / SSE）→ Task 10（状态文档 + 最终验证 + 提交）。
 
+## 五、后续 session 主力组合选型（三选一）
+
+用户待选：**dsh + deepseek-v4-flash-0731 / codex cli + gpt-5.6-luna / codex cli + deepseek-v4-flash-0731**。本节为 2026-08-18 补查证据。
+
+### 关键新证据
+
+1. **dsh 的"极简模式魔法"只对 V4-Pro 有效，对 Flash 无效**：社区实测 V4 Flash 在不同 harness 下分数稳定（90–95），切换到极简模式也无变化——dsh 对 Flash 没有 Pro 那种"启动钥匙"加成，只额外引入 harness 自身的复杂与不稳定。
+2. **dsh 核心层存在 Flash 专属未修复 bug**（Discussion #725 / #161）：V4 Flash（或任何以多 SSE 分块返回工具调用续 delta 的模型）在流式模式下所有工具调用报 `unknown tool ""`；根因在 `packages/llm/llm-deepseek/src/translate.ts` 159–160 行——续 delta 中 id/name 为 null 时覆盖了首块值。官方关闭 Issue/PR 提交，用户需自行改源码 + `pnpm run build` 重启。社区已累计 173+ 真实痛点（含 Windows 中文路径截断、无成本统计、纯文本模型不能看图等）。
+3. **dsh 的子代理能力全部来自社区第三方扩展**（dsh-team、dsh-forge `modsub`、dsh-background-agents、dsh-ai-solution-council），非核心功能，成熟度低且互相叠加不稳定。
+4. **Luna 在 Codex 里不是一等公民**：模型目录把 Luna 钉在 `multi_agent_version: "v1"`；2026-08-16 开发者报告 OpenAI 把 GPT-5.6 Luna 移出 V2 `spawn_agent` 目标（issue #35097），V2 委派只支持 Sol/Terra；sol-advisor 作者实测"Luna 在子代理角色表现差（疑似未针对 v2 多代理协议后训练）"，Diego Haz 独立撞到同一堵墙。社区共识：**给 Luna 独立顶层线程**，由 Sol 编排、Sol 复核，而非放进子代理图。同日 OpenAI 社区帖子标题称"Sol 现在可以委派 Luna"——两种说法并存，该区域正快速变动，workaround 均为 V1 回退或"delegate new thread"措辞。
+5. **Composio 实测（8 个 harness × 30 个复杂多步任务，240 runs）**：V4 Flash 真实 agent 任务完成率仅 53.8%（129/240），且同模型在不同 harness 下结果差异巨大（仅 6/30 工作流被所有 harness 完整完成）——对 Flash 而言 harness 几乎决定成败。
+6. **DeepSeek 宣布涨价（VentureBeat，2026-08-15）**：Flash 峰值 44¢/M in、$1.32/M out（涨幅 57–371%），低谷（17/24 小时）22¢/66¢；Pro 峰值 132¢/396¢。涨价后 Flash 与 Luna 的输出单价在峰值档几乎持平（$1.32 vs $1.20），低谷档仍约为一半。分析师共识：Flash 定位"高频量大的 worker / 批处理"，困难任务应放别处；成本单位应看"每成功完成工作流"，而非每 token。
+
+### 三组合对比
+
+| 维度 | dsh + v4-flash-0731 | codex cli + gpt-5.6-luna | codex cli + v4-flash-0731（现状） |
+|---|---|---|---|
+| 子代理稳定性 | 核心无子代理，靠第三方扩展，未经验证 | 原生 OpenAI 路径无 encrypted_content bug；但 Luna 被移出 V2 spawn_agent（V1 / 独立线程 workaround） | v2 投递 bug 必现；v1 workaround 已验证可用 |
+| Windows 可用性 | 差（MSYS2 崩溃、中文路径 bug、流式工具 bug 需自改源码） | 好（Codex 原生） | 好（Codex 原生） |
+| 编码质量（Python/JS） | Flash 级别（DeepSWE 53.3%；Python 49 / JS 35） | Luna 级别（DeepSWE 67.2%；Python 65 / JS 60，更快） | Flash 级别 |
+| 成本 | $0.10/rollout；涨价后优势缩小，峰值输出价 ≈ Luna | $0.61/rollout；Plus 订阅 Luna 配额日常够、Sol 紧 | $0.10/rollout；同左涨价风险 |
+| 失败画像 | Flash：破坏既有测试少（9%） | Luna：破坏既有测试多（15%），必须接回归门 | Flash：9% |
+| 主要风险 | 核心 bug + 生态不成熟 + 对 Flash 无极简加成 | Luna 指令漂移、TTFT 长（max 约 136s）、上下文烧得快；复杂任务需 Sol 复核（Sol 配额紧） | Flash Python/JS 弱；子代理 bug 需 workaround；涨价 |
+
+### 建议（后续 session）
+
+1. **若愿意买 Plus：codex cli + gpt-5.6-luna（Sol/Luna 分层）**。这是三者中唯一能同时拿到"原生子代理投递正常 + 高质量编码"的组合；Luna 的甜区（边界清楚、可验证、TDD 任务简报）与 BRIDGE 逐任务开发方式匹配。正确姿势是社区验证过的分层：Sol 主线程拆任务/定架构/终审，Luna Max 独立线程做有界实现，fresh Sol 复核——不要把 Luna 当全能主力（激活参数小，复杂任务易漂移返工，Diego Haz 实测返工可吞掉全部省下的钱）。
+2. **不买 Plus 时：继续 codex cli + deepseek-v4-flash-0731**。成本低、失败破坏小（9%）、query/config 域适配本项目；子代理用 `multi_agent_version: "v1"` workaround 或继续内联执行；涨价后把批处理/重活排到低谷档（17/24 小时半价）。
+3. **不建议 dsh + v4-flash-0731 作主力**：dsh 的极简加成只属于 V4-Pro，Flash 在 dsh 上既无加成又要吃核心流式 bug + Windows 不稳定 + 第三方子代理扩展，纯风险无收益。若想试 dsh，应配 V4-Pro 做受控实验且优先 Linux/macOS，不接 BRIDGE 日常开发。
+4. **跨组合通用规则**：无论选哪个组合——接测试门/回归门、主线程逐 diff 审查、困难与模糊任务留给强模型（Sol/Luna/Terra/Pro）、机械任务交给便宜模型（Flash）、以"每成功完成工作流"核算成本。这正是本 session 已采用的内联 TDD + 逐任务提交 + 控制器审查模式，后续可平滑升级为"Sol 编排 + Luna worker + 测试门"。
+
 ## 参考链接
 
 - Together AI: DeepSeek-V4 Flash 0731 vs GPT-5.6 Luna on DeepSWE（成本与编码能力实测）：<https://www.together.ai/blog/deepseek-v4-flash-0731-vs-gpt-5-6-luna-on-deepswe-cost-and-coding>
@@ -85,3 +116,9 @@ dsh 的价值是"V4-Pro 启动钥匙"的研究价值，不是稳定开发环境�
 - dsh-handbook discussion-mining：rc.6 Windows 系列 bug（readUtf16 中文路径、unknown tool ""、长会话延迟）：<https://github.com/Electricitysheep/dsh-handbook/blob/main/docs/research/discussion-mining.md>
 - IT之家：OpenAI 优化 GPT-5.6 Sol 并临时取消 5 小时限额：<https://m.ithome.com/html/975974.htm>
 - 凤凰科技：同一事件的补充报道：<https://tech.ifeng.com/c/8uj5kWmA5MJ>
+- deepseek-ai/deepseek-harness Discussion #725 / #161：V4 Flash 流式工具调用 `unknown tool ""` 根因与自修方案：<https://github.com/deepseek-ai/deepseek-harness/discussions/725>
+- explainx.ai：Codex Multi-Agent V2 委派变化（Luna 被移出 V2 spawn_agent，issue #35097）：<https://explainx.ai/blog/codex-multi-agent-v2-delegation-gpt-5-5-restricted-models-august-2026>
+- OrcaRouter：GPT-5.6 Luna Max in Codex 实战（TTFT、上下文燃烧、独立线程模式、五问交接包）：<https://www.orcarouter.ai/blog/gpt-5-6-luna-max-codex-playbook>
+- 智差：Codex 新分工——Sol 当包工头、Luna Max 做边界清楚的体力活：<https://www.zhichai.top/archives/13699>
+- VentureBeat：V4 Flash 真实 agent 任务翻车 + DeepSeek 涨价（57–371%）：<https://venturebeat.com/orchestration/deepseeks-top-ranked-v4-flash-stumbles-on-real-agent-tasks-as-its-prices-surge>
+- 阿里云开发者社区：极简模式实测——Flash 跨 harness 稳定、极简对 Flash 无加成：<https://developer.aliyun.com/article/1755989>
