@@ -1,0 +1,7 @@
+Case script:
+{{SCRIPT}}
+
+History so far (student -> patient):
+{{HISTORY}}
+
+The student asks: {{MESSAGE}}
