@@ -44,11 +44,28 @@
 
 ### 中期（若仍想用子代理）
 
+- **首选 workaround（#36586 已验证）**：把 `~/.codex/models.json` 中 DeepSeek 模型条目的 `multi_agent_version` 从 `"v2"` 改为 `"v1"`，重启会话。V1 下 spawn 初始任务以普通用户消息（`SpawnInitialInput::UserInput`）投递，DeepSeek 子代理可正确执行任务。代价：失去 MultiAgentV2 工具面/行为（explainx.ai 2026-08-15 也确认该 workaround）。本机 `models.json` 两条（deepseek-v4-flash / deepseek-v4-pro）当前均为 `"v2"`。
 - 社区修复（本地、自选其一，均属第三方补丁，需用户确认后再装）：
   - `hairyf/codex-deepseek-subagent-proxy`：本地转发代理，把 `agent_message` 转成普通 `user message` 修复 DeepSeek/非 OpenAI Responses provider 的任务投递。
   - `CCanxue/codex-deepseek-subagent-fix`：本地补丁（核心投递层）。
   - `nFr3axp1/codex-multi-agent-fixed`：同类多 Agent 修复工具。
 - 或者等待 Codex 官方修复（给 #36493 / #36586 / #36321 加星/评论，关注新版本 release notes）；当前 0.147.0 仍存在该问题。
+
+## ChatGPT 桌面版（Codex Desktop）是否受影响？（2026-08-18 补充查证）
+
+**受影响。** 该缺陷在引擎层（codex-cli / codex-rs core），桌面版内嵌同一引擎：
+
+- **#36493**：Codex Desktop（Windows MSIX，包 `OpenAI.Codex_26.727.6591.0_x64`，引擎 0.146.0-alpha.9.2）+ DeepSeek + deepseek-v4-flash —— 根因与本机一致（`content:""` + `encrypted_content`，仅父→子方向受影响），并给出 `state_5.sqlite` 的 `first_user_message` 错误播种证据。
+- **#36321**：Codex Desktop（macOS Darwin arm64，0.146.0-alpha.9.2）+ deepseek-v4-flash —— 同样空 Payload，且注明 "Codex Desktop, originator: Codex Desktop"。
+- **#36586**：Codex CLI 0.145.0 Windows —— 给出引擎源码级根因：
+  - `codex-rs/core/src/tools/handlers/multi_agents_v2.rs`：`communication_from_tool_message` 对所有非 DirectPlaintextMessage 源调用 `new_encrypted(...)`，任务正文进入 `encrypted_content`；
+  - `codex-rs/core/src/client.rs`：`build_responses_request` 的 `!is_openai` 分支只清理 `FunctionCall.encrypted_function_args`，未处理 `ResponseItem::AgentMessage` 的 `encrypted_content`，原样发给 provider；
+  - DeepSeek Responses API 不认识 `encrypted_content` 块类型，直接丢弃 → 模型只见空 Payload。
+  - OpenAI 原生模型正常，因为服务端会解密/渲染该字段。
+
+结论：**决定因素不是"CLI 还是桌面版"，而是 `multi_agent_version = "v2"` + 自定义非 OpenAI provider（DeepSeek，wire_api=responses）**。只要满足这两个条件，npm CLI 和 ChatGPT 桌面版都会出现；原生 OpenAI 模型则正常。
+
+截至 2026-08-18 检索，未发现已发布的官方修复版本；可用方案为：内联执行 / V1 workaround / 社区代理补丁。
 
 ## 参考
 
