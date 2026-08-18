@@ -1,0 +1,12 @@
+Case summary: {{SUMMARY}}
+Working diagnosis: {{WORKING_DIAGNOSIS}}
+Structured questions and suggested answers:
+{{QUESTIONS_AND_ANSWERS}}
+
+Rubric:
+{{RUBRIC}}
+
+Student's answers:
+{{STUDENT_ANSWERS}}
+
+Provide the JSON score, feedback, and reference answer now.
