@@ -13,16 +13,16 @@
       "name": "AI Provider Integration (DeepSeek V4 Flash)",
       "description": "Configure DeepSeek V4 Flash (0731) as the AI provider for the standardized patient dialogue and scoring/feedback. API key supplied via environment variable by the user (registered separately). No hardcoded credentials.",
       "dependencies": ["feat-001"],
-      "status": "not-started",
-      "evidence": ""
+      "status": "completed",
+      "evidence": "LLM client + key hygiene + real smoke OK (0c0743a; key only in git-ignored backend/.env); SP dialogue (890235b), AI scoring (0918da5), SSE streaming endpoint (af29f26); pytest 22 passed."
     },
     {
       "id": "feat-010",
       "name": "Case Data Model & Developer Seed Workflow",
       "description": "Case data structure per requirements section 9 (Case, PatientInformation, ExaminerPack, CaseReviewRecord). Phase-1 cases are authored by developers as structured files (no web form, per decision 2026-08-18) and loaded via a seed/import script. First seed case: Cecilia (GP-ChestPain-0001).",
       "dependencies": ["feat-001"],
-      "status": "not-started",
-      "evidence": ""
+      "status": "completed",
+      "evidence": "Domain models (4d08a02) + Alembic migration (2fe7485, upgrade/downgrade OK); case JSON schema + docs/case-file-format.md (19ba1a4); idempotent seed workflow + Chinese Cecilia GP-ChestPain-0001 with 7 structured questions / 9 physical / 4 investigation / rubric (d313764); import tests (7ca5659); pytest 22 passed."
     },
     {
       "id": "feat-002",

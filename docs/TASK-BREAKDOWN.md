@@ -41,7 +41,7 @@ feat-009 教师统计           ← 依赖 feat-002, feat-004
 验收标准：
 - Pydantic schema 能校验合法病例文件、拒绝缺字段/非法枚举的文件
 - 文档 `docs/case-file-format.md` 说明每个字段与 Excel 模板的对应
-- 校验器明确拒绝可识别身份信息（规则来自 ADR-0002）
+- **DEFERRED (2026-08-18):** ~~校验器明确拒绝可识别身份信息（规则来自 ADR-0002）~~ 用户决策：本期病例全为虚拟病例；加入真实病例前由用户亲自校验脱敏；ADR-0002 政策保留。
 
 **T-010.4 种子脚本与 Cecilia 病例**
 内容：`backend/scripts/seed_cases.py` 读取 `cases/` 目录并导入数据库；把 Cecilia 示例（GP-ChestPain-0001）完整转成首个种子文件。

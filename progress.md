@@ -3,8 +3,29 @@
 ## Current State
 
 **Last Updated:** 2026-08-18
-**Session ID:** 008
-**Active Feature:** feat-001 - Project Setup & Verification
+**Session ID:** 009
+**Active Feature:** feat-010 (Case Data Model & Seed Workflow) + feat-011 (DeepSeek V4 Flash)
+
+## Session 009 (2026-08-18): feat-010 + feat-011
+
+### What's Done
+
+- [x] feat-011: DeepSeek V4 Flash 适配（LLM client + key 卫生 + 真实 smoke OK，key 仅存 git-ignored 的 `backend/.env`）
+- [x] feat-010: 领域模型 + Alembic 迁移 + 病例 JSON schema + 幂等种子工作流 + 中文 Cecilia 病例（GP-ChestPain-0001）
+- [x] SP 对话（T-011.2）、AI 评分（T-011.3）、SSE 流式端点（T-011.4）
+- [x] 全量验证：`pytest 22 passed`（WSL）；`./init.sh` 四步全绿（secret hygiene / pytest / typecheck / build）
+- [x] 子代理不稳定根因调研（MultiAgentV2 `encrypted_content` 对第三方 provider 不可见）；config 已加 `multi_agent_v2 = false`，下次冷启动生效
+
+### Evidence
+
+- 种子导入（连续两次，幂等）：`Imported 1 case(s): GP-ChestPain-0001`；库内 `questions=7, physical=9, investigation=4, rubric=True, status=published, sections_language 全 zh`
+- 提交链：`0c0743a`（LLM client）→ `4d08a02`（domain models）→ `2fe7485`（migration）→ `19ba1a4`（schema+docs）→ `d313764`（seed+Cecilia）→ `7ca5659`（import tests）→ `890235b`（SP）→ `0918da5`（scoring）→ `af29f26`（SSE）→ 本次 docs/checkpoint commit
+
+### Blockers / Risks
+
+- 无 key 泄露风险：key 只在本机 `backend/.env` 与 `~/.codex/config.toml`，不提交 GitHub、不用中转站
+- 子代理任务投递在当前 session（已锁定 MultiAgentV2）仍不可用；修复需冷启动新 session + `[features] multi_agent_v2 = false`
+- API 成本无上限：正式给学生使用前需补用量统计
 
 ## Status
 
