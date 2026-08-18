@@ -17,6 +17,13 @@ __pycache__/
 .env
 .env.*
 
+# Allow committed example templates (real .env files stay ignored)
+!**/.env.example
+
+# Local SQLite databases
+*.db
+*.db-journal
+
 # Logs
 *.log
 
