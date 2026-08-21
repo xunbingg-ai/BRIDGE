@@ -2,9 +2,29 @@
 
 ## Current State
 
-**Last Updated:** 2026-08-18
-**Session ID:** 009
-**Active Feature:** feat-010 (Case Data Model & Seed Workflow) + feat-011 (DeepSeek V4 Flash)
+**Last Updated:** 2026-08-21
+**Session ID:** 010
+**Active Feature:** WSL 环境：原生安装 DSH CLI（环境维护，不改变 BRIDGE 产品特性）
+
+## Session 010 (2026-08-21): WSL 原生 dsh
+
+### What's Done
+
+- [x] 在 WSL Ubuntu 原生安装 `@deepseek-ai/dsh@0.1.0-rc.7`（全局 `/usr/lib/node_modules`，`dsh` 优先解析到 `/usr/bin/dsh`，不再走 Windows npm shim）
+- [x] 允许 node-pty/koffi/dsh-subprocess-local 等原生 install scripts（`--allow-scripts`）
+- [x] 验证：`dsh --version` → `0.1.0-rc.7`；`dsh web --help` 正常；`dsh web --no-open --port 3080` 启动后 WSL 内 `curl` 返回 200，Windows 本机 `Invoke-WebRequest http://127.0.0.1:3080/` 也返回 200
+- [x] 新增可复现安装脚本 `scripts/setup-dsh-wsl.sh`，README 增加 WSL 原生 dsh 启动说明
+
+### Evidence
+
+- WSL 内 `type -a dsh` → `/usr/bin/dsh`（原生），Windows shim 仍在 `/mnt/c/...` 但不再优先
+- `dsh web` 输出：`dsh web: http://127.0.0.1:3080`
+- 用户数据目录：WSL 内为 `~/.dsh`（`/home/patrick/.dsh`），与 Windows `C:\Users\asus\.dsh` 相互独立
+
+### Blockers / Risks
+
+- Windows 有 localhost 代理提示（WSL NAT 不镜像 localhost proxy）；若 LLM API 需要代理，需在 WSL 内单独配置代理环境变量
+- 首次 `dsh web` 会在 `~/.dsh` 自动初始化 web profile；Windows 与 WSL 的 profile/session 数据不互通
 
 ## Session 009 (2026-08-18): feat-010 + feat-011
 

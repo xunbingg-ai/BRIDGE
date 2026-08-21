@@ -44,4 +44,20 @@ cd backend && uv run uvicorn app.main:app --reload
 cd frontend && npm run dev
 ```
 
+## DSH CLI（WSL 原生安装）
+
+Windows 版 `dsh` 走 PowerShell/Windows 路径，容易让 agent 陷入“大战 powershell”。
+在 WSL 里安装原生 Linux 版后，直接用 `dsh web` 启动 DeepSeek Harness Web UI：
+
+```bash
+# 在 WSL 中安装/刷新 dsh（幂等，已安装则更新到当前锁定版本）
+bash scripts/setup-dsh-wsl.sh
+
+# 启动 Web UI（默认 http://127.0.0.1:3080，Windows 浏览器可直接访问）
+dsh web
+
+# 自定义端口
+dsh web --port 8080
+```
+
 技术栈：FastAPI（Python）+ React + TypeScript + Vite + Tailwind v4 + shadcn/ui；开发用 SQLite，上线 PostgreSQL。决策记录见 `docs/adr/`。
