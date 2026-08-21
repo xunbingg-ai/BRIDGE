@@ -60,4 +60,6 @@ dsh web
 dsh web --port 8080
 ```
 
+当前本机已把 Windows `C:\Users\asus\.dsh` 的关键配置迁移到 WSL `~/.dsh`：凭据、默认模型、web profile 插件（dshmarket / super-injector / agent-teams）、MCP 配置（PubMed/arXiv/Consensus）、skills 符号链接。若 Windows 侧更新了 API Key，重新复制 `~/.dsh/.credentials.yaml` 并 `chmod 600` 即可。
+
 技术栈：FastAPI（Python）+ React + TypeScript + Vite + Tailwind v4 + shadcn/ui；开发用 SQLite，上线 PostgreSQL。决策记录见 `docs/adr/`。

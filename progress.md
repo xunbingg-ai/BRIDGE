@@ -14,18 +14,27 @@
 - [x] 允许 node-pty/koffi/dsh-subprocess-local 等原生 install scripts（`--allow-scripts`）
 - [x] 验证：`dsh --version` → `0.1.0-rc.7`；`dsh web --help` 正常；`dsh web --no-open --port 34567` 在 WSL 进程保持存活时，WSL 内 `curl` 返回 200，Windows 本机 `Invoke-WebRequest http://127.0.0.1:34567/` 也返回 200（WSL2 localhost 转发可用）
 - [x] 新增可复现安装脚本 `scripts/setup-dsh-wsl.sh`，README 增加 WSL 原生 dsh 启动说明
+- [x] 迁移 Windows dsh 用户配置到 WSL：`settings.yaml` + `.credentials.yaml`（chmod 600）复制到 `~/.dsh`
+- [x] 迁移 web profile 插件：`dshmarket`、`@dsh-external/dsh-super-injector`（link 到 `/mnt/d/router/...`）、`@nanmicoder/dsh-agent-teams`，并用原生 pnpm 安装
+- [x] 将 `cordis.patch.yml` 的 MCP 配置改为 WSL 版（PubMed 用 `npx`，arXiv 用 `uvx`，Consensus 不变）
+- [x] `~/.dsh/skills` 符号链接到 Windows `.dsh/skills`，保留既有 skills
+- [x] 最终验证：带插件/凭据/MCP 的 `dsh web` 在 WSL 启动成功（端口 34569/34570），Windows 访问 `http://127.0.0.1:<port>/` 返回 200
 
 ### Evidence
 
 - WSL 内 `type -a dsh` → `/usr/bin/dsh`（原生），Windows shim 仍在 `/mnt/c/...` 但不再优先
 - `dsh web` 输出：`dsh web: http://127.0.0.1:3080`
 - 用户数据目录：WSL 内为 `~/.dsh`（`/home/patrick/.dsh`），与 Windows `C:\Users\asus\.dsh` 相互独立
+- WSL `pnpm` 原生安装：`/usr/bin/pnpm`（11.22.0）
+- `~/.dsh` 已含 `settings.yaml`、`.credentials.yaml`（600）、`profiles/web/node_modules`（dshmarket + super-injector + agent-teams）、`skills -> /mnt/c/Users/asus/.dsh/skills`
 
 ### Blockers / Risks
 
 - Windows 有 localhost 代理提示（WSL NAT 不镜像 localhost proxy）；若 LLM API 需要代理，需在 WSL 内单独配置代理环境变量
 - 首次 `dsh web` 会在 `~/.dsh` 自动初始化 web profile；Windows 与 WSL 的 profile/session 数据不互通
 - `dsh web` 必须在 WSL 终端前台运行（或用 tmux/systemd/后台 job 保持 WSL 实例存活）；通过一次性 `wsl.exe -c 'nohup ... &'` 启动，WSL 实例会随命令退出而关闭，Windows 将无法访问
+- 凭据是复制到 WSL 的，不是实时同步；Windows 侧更新 `DEEPSEEK_API_KEY` 后需重新复制 `~/.dsh/.credentials.yaml`（chmod 600）
+- `~/.dsh/skills` 是指向 `/mnt/c/...` 的符号链接，读写性能不如 WSL 本地目录；若觉得慢可改为本地复制
 
 ## Session 009 (2026-08-18): feat-010 + feat-011
 
