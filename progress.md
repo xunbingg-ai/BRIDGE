@@ -12,7 +12,7 @@
 
 - [x] 在 WSL Ubuntu 原生安装 `@deepseek-ai/dsh@0.1.0-rc.7`（全局 `/usr/lib/node_modules`，`dsh` 优先解析到 `/usr/bin/dsh`，不再走 Windows npm shim）
 - [x] 允许 node-pty/koffi/dsh-subprocess-local 等原生 install scripts（`--allow-scripts`）
-- [x] 验证：`dsh --version` → `0.1.0-rc.7`；`dsh web --help` 正常；`dsh web --no-open --port 3080` 启动后 WSL 内 `curl` 返回 200，Windows 本机 `Invoke-WebRequest http://127.0.0.1:3080/` 也返回 200
+- [x] 验证：`dsh --version` → `0.1.0-rc.7`；`dsh web --help` 正常；`dsh web --no-open --port 34567` 在 WSL 进程保持存活时，WSL 内 `curl` 返回 200，Windows 本机 `Invoke-WebRequest http://127.0.0.1:34567/` 也返回 200（WSL2 localhost 转发可用）
 - [x] 新增可复现安装脚本 `scripts/setup-dsh-wsl.sh`，README 增加 WSL 原生 dsh 启动说明
 
 ### Evidence
@@ -25,6 +25,7 @@
 
 - Windows 有 localhost 代理提示（WSL NAT 不镜像 localhost proxy）；若 LLM API 需要代理，需在 WSL 内单独配置代理环境变量
 - 首次 `dsh web` 会在 `~/.dsh` 自动初始化 web profile；Windows 与 WSL 的 profile/session 数据不互通
+- `dsh web` 必须在 WSL 终端前台运行（或用 tmux/systemd/后台 job 保持 WSL 实例存活）；通过一次性 `wsl.exe -c 'nohup ... &'` 启动，WSL 实例会随命令退出而关闭，Windows 将无法访问
 
 ## Session 009 (2026-08-18): feat-010 + feat-011
 

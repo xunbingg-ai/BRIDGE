@@ -53,7 +53,7 @@ Windows 版 `dsh` 走 PowerShell/Windows 路径，容易让 agent 陷入“大�
 # 在 WSL 中安装/刷新 dsh（幂等，已安装则更新到当前锁定版本）
 bash scripts/setup-dsh-wsl.sh
 
-# 启动 Web UI（默认 http://127.0.0.1:3080，Windows 浏览器可直接访问）
+# 启动 Web UI（默认 http://127.0.0.1:3080，Windows 浏览器可直接访问；保持该 WSL 终端开着）
 dsh web
 
 # 自定义端口
