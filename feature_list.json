@@ -1,0 +1,68 @@
+{
+  "features": [
+    {
+      "id": "feat-001",
+      "name": "病例库与公开列表",
+      "description": "首页病例列表：7 门类筛选、关键词搜索、分页与懒加载；含 12 个内置演示病例及后续新增病例",
+      "dependencies": [],
+      "status": "done",
+      "evidence": "backend/cases.py + seed_data.py(12 例)；/api/cases 返回 13 例"
+    },
+    {
+      "id": "feat-002",
+      "name": "认证与个人中心",
+      "description": "学生注册/登录（JWT 鉴权）、/me 个人信息、改密；角色 student/admin",
+      "dependencies": ["feat-001"],
+      "status": "done",
+      "evidence": "backend/auth.py；admin/admin123 与注册学生均可登录"
+    },
+    {
+      "id": "feat-003",
+      "name": "问诊会话流程",
+      "description": "8 分钟倒计时会话：AI 病人问询 -> 结束问询 -> AI 考官作答 -> 提交评分（异步后台线程）",
+      "dependencies": ["feat-002"],
+      "status": "done",
+      "evidence": "backend/sessions.py + ai_service.py；实测 create/message/end-inquiry/submit 全链路"
+    },
+    {
+      "id": "feat-004",
+      "name": "报告与评分展示",
+      "description": "提交后进入评分中并轮询，完成展示 ScoreBox(总分+四维小分) 与 AnswerBox(参考答案)",
+      "dependencies": ["feat-003"],
+      "status": "done",
+      "evidence": "frontend page report/[sessionid].vue + backend _grade_and_save"
+    },
+    {
+      "id": "feat-005",
+      "name": "管理后台",
+      "description": "病例 CRUD、CSV 批量导入/导出模板、批量删除、大模型接入配置（baseUrl/apiKey/headers/model/backupModel、拉取模型、测速）",
+      "dependencies": ["feat-001"],
+      "status": "done",
+      "evidence": "backend/admin.py + frontend components/admin/*；admin 角色可访问 /admin"
+    },
+    {
+      "id": "feat-006",
+      "name": "大模型接入（DeepSeek）",
+      "description": "OpenAI 兼容 LLM：环境变量注入（当前 DeepSeek V4 Flash），未配置时降级为内置 Mock；后台 LLM 配置优先于环境变量",
+      "dependencies": ["feat-003"],
+      "status": "done",
+      "evidence": "backend/ai_service.py + llm_config.py；实测病人说中文、考官说英文语言规则生效"
+    },
+    {
+      "id": "feat-007",
+      "name": "新增教学病例（GP-003）",
+      "description": "把 Example teaching case.md（压力/焦虑相关胸痛）按前身 repo prompt 逻辑整理为 patient_prompt(中文)/examiner_prompt(英文含语言提醒)/reference_answer 并入库",
+      "dependencies": ["feat-001", "feat-006"],
+      "status": "done",
+      "evidence": "GP-003 已入库且 is_active=1；实测病人中文、考官英文、语言不符提醒"
+    },
+    {
+      "id": "feat-008",
+      "name": "仓库 Harness 脚手架",
+      "description": "为 OSCE 分支建立 harness-creator 规范的五件套：AGENTS.md、feature_list.json、progress.md、init.sh、session-handoff.md",
+      "dependencies": [],
+      "status": "in-progress",
+      "evidence": "AGENTS.md/feature_list.json/progress.md/session-handoff.md/init.sh 已创建，待 ./init.sh 验证通过"
+    }
+  ]
+}
