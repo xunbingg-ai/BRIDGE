@@ -31,3 +31,9 @@ backend/.venv/
 backend/osce.db
 __pycache__/
 *.pyc
+
+# Reference docs / case templates (internal working files, not version-tracked)
+BRIDGE - 首期需求文档*.md
+Case repository - Template*.xlsx
+Example teaching case*.md
+OSCE开发*.md
