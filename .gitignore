@@ -1,25 +1,30 @@
-# Dependencies
-node_modules/
-.venv/
-venv/
-backend/.venv/
-frontend/node_modules/
+# Nuxt dev/build outputs
+.output
+.data
+.nuxt
+.nitro
+.cache
+dist
 
-# Build output
-dist/
-build/
-.next/
-frontend/dist/
-__pycache__/
-*.pyc
-
-# Environment & secrets
-.env
-.env.*
+# Node dependencies
+node_modules
 
 # Logs
+logs
 *.log
 
-# OS files
+# Misc
 .DS_Store
-Thumbs.db
+.fleet
+.idea
+
+# Local env files
+.env
+.env.*
+!.env.example
+
+# Python backend
+backend/.venv/
+backend/osce.db
+__pycache__/
+*.pyc

@@ -1,1 +1,0 @@
-"""BRIDGE backend application package."""
