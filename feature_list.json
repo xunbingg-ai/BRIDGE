@@ -19,10 +19,10 @@
     {
       "id": "feat-003",
       "name": "问诊会话流程",
-      "description": "8 分钟倒计时会话：AI 病人问询 -> 结束问询 -> AI 考官作答 -> 提交评分（异步后台线程）",
+      "description": "问诊会话：AI 病人问询 -> 结束问询 -> AI 考官作答 -> 提交评分（异步后台线程；已移除 8 分钟倒计时/时限）",
       "dependencies": ["feat-002"],
       "status": "done",
-      "evidence": "backend/sessions.py + ai_service.py；实测 create/message/end-inquiry/submit 全链路"
+      "evidence": "backend/sessions.py + ai_service.py；实测 create/message/end-inquiry/submit 全链路；已移除 8 分钟倒计时/时限（前端 session 页计时 UI + 后端 SESSION_SECONDS/_deadline_expired 拦截），保留 deadline_at 列（写入创建时间）；独立 evaluator e2e PASS"
     },
     {
       "id": "feat-004",

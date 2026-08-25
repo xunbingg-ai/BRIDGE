@@ -3,10 +3,20 @@
 ## Current State
 
 **Last Updated:** 2026-08-25 (session)
-**Session ID:** dsh-session (Playwright 端到端验证门禁)
-**Active Feature:** feat-010 — Playwright 端到端验证门禁
+**Session ID:** dsh-session (移除 8 分钟倒计时功能)
+**Active Feature:** 移除问诊会话的 8 分钟倒计时 / 时限（属于 feat-003 的调整）
 
 ## Status
+
+### This Session — 移除倒计时功能（最小改动）
+
+- [x] 移除前端 `frontend/app/pages/session/[sessionid].vue` 的倒计时能力：删除「剩余时间」UI、`secondsLeft`/`timeUp`/`timer` 状态、`timerText`/`timerClass`、`startTimer`/`stopTimer`、`onMounted` 的计时启动、`watch(timeUp)` 的到时自动提交/提示，以及 `onBeforeUnmount(stopTimer)`；把 `timeUp` 从 `:disabled` 绑定中剔除。
+- [x] 移除后端 `backend/sessions.py` 的时限逻辑：删除 `SESSION_SECONDS`、`_deadline_expired()`、`now + timedelta(...)` 的 deadline 计算，及 `send_message`/`end_inquiry` 两处把状态置为 `expired` 并返回 `408 会话已超过8分钟` 的拦截。保留 `deadline_at` 列（schema 为 NOT NULL，改为写入创建时间，避免变更数据库/迁移），未再被任何逻辑使用。
+- [x] 更新文档：`feature_list.json`（feat-003 描述去掉「8 分钟倒计时」）、`README.md`（`/session/{sessionid}` 描述去掉倒计时）。
+- [x] `bash init.sh` 基线通过（backend import + db init + nuxt prepare）。
+- [x] `cd frontend && pnpm build` 全量生产构建通过（exit 0）。
+- [x] **独立 evaluator 子代理端到端验证通过（PASS）**：`cd frontend && bash e2e.sh` 冒烟 2/2 通过（病例列表 + admin 登录）；临时会话流用例通过——注册新学生 → 首页选病例开始练习 → 会话页确认倒计时已移除（无「剩余时间」、无 `MM:SS`、无计时/到时控件）→ AI 病人问询回复 → 结束问询（AI 考官阶段）→ 提交审查 → `/report` 展示 ScoreBox/AnswerBox；全程无「时间已到/超过8分钟/会话已超过8分钟」告警、无未捕获页面错误；临时用例与测试数据已清理，仓库只含本次改动。验证细节见「端到端验证门禁」。
+- [x] 说明：保留 `deadline_at` 列（schema NOT NULL，改为写入创建时间），未改动数据库/迁移；`expired` 状态/展示逻辑保留（兼容历史数据），仅当历史数据存在时才会出现。
 
 ### What's Done
 

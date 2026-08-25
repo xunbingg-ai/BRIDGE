@@ -35,7 +35,7 @@ OSCE/
 - `/`：首页展示病例，支持七个门类筛选和关键词搜索，病例卡片懒加载。
 - `/login` 与 `/register`：学生注册登录，JWT 鉴权。
 - `/dashboard`：左侧 `ProfileBox`，右侧 `HistoryBox`。
-- `/session/{sessionid}`：8 分钟倒计时，AI 病人问询 → 结束问询 → AI 考官审查 → 提交审查。
+- `/session/{sessionid}`：AI 病人问询 → 结束问询 → AI 考官审查 → 提交审查。
 - `/report/{sessionid}`：提交后进入评分中，轮询完成后展示 `ScoreBox` 和 `AnswerBox`。
 - `content` 保存完整对话 JSON，`score` 保存总分与四个小分，`report` 保存结构化评价 JSON。
 - 未登录可以浏览病例，点击开始练习时跳转登录。

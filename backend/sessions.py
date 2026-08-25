@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import threading
 import traceback
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from flask import Blueprint, g, jsonify, request
 
@@ -12,8 +12,6 @@ from auth import token_required
 from database import get_db, now_iso
 
 bp = Blueprint("sessions", __name__, url_prefix="/api/sessions")
-
-SESSION_SECONDS = 8 * 60
 
 
 def _parse_json(value, fallback=None):
@@ -31,13 +29,6 @@ def _json_dumps(value) -> str:
 
 def _now_datetime() -> datetime:
     return datetime.now().astimezone()
-
-
-def _deadline_expired(deadline_at: str) -> bool:
-    try:
-        return _now_datetime() > datetime.fromisoformat(deadline_at)
-    except (TypeError, ValueError):
-        return False
 
 
 def _initial_content(session_id: int, case_id: int) -> dict:
@@ -157,7 +148,6 @@ def create_session():
         return jsonify({"message": "病例不存在"}), 404
 
     now = _now_datetime()
-    deadline = now + timedelta(seconds=SESSION_SECONDS)
     cursor = g.db.execute(
         """
         INSERT INTO sessions (user_id, case_id, create_at, deadline_at, status, content, updated_at)
@@ -167,7 +157,7 @@ def create_session():
             g.user["user_id"],
             case_id,
             now.isoformat(timespec="seconds"),
-            deadline.isoformat(timespec="seconds"),
+            now.isoformat(timespec="seconds"),
             _json_dumps(_initial_content(0, case_id)),
             now.isoformat(timespec="seconds"),
         ),
@@ -205,13 +195,6 @@ def send_message(session_id: int):
         return jsonify({"message": "会话不存在"}), 404
     if row["status"] not in {"patient", "examiner"}:
         return jsonify({"message": "当前会话已结束"}), 400
-    if _deadline_expired(row["deadline_at"]):
-        g.db.execute(
-            "UPDATE sessions SET status = 'expired', ended_at = ?, updated_at = ? WHERE session_id = ?",
-            (now_iso(), now_iso(), session_id),
-        )
-        g.db.commit()
-        return jsonify({"message": "会话已超过8分钟，请重新开始"}), 408
 
     data = request.get_json(silent=True) or {}
     user_text = (data.get("content") or "").strip()
@@ -252,13 +235,6 @@ def end_inquiry(session_id: int):
         return jsonify({"message": "会话不存在"}), 404
     if row["status"] != "patient":
         return jsonify({"message": "当前不在问询阶段"}), 400
-    if _deadline_expired(row["deadline_at"]):
-        g.db.execute(
-            "UPDATE sessions SET status = 'expired', ended_at = ?, updated_at = ? WHERE session_id = ?",
-            (now_iso(), now_iso(), session_id),
-        )
-        g.db.commit()
-        return jsonify({"message": "会话已超过8分钟，请重新开始"}), 408
 
     content = _parse_json(row["content"], _initial_content(session_id, row["case_id"]))
     content = _append_message(content, "patient", "system", "考生选择结束问询，进入考官审查阶段。")
