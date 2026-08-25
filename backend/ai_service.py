@@ -125,14 +125,30 @@ def examiner_reply(case: dict[str, Any], messages: list[dict[str, str]]) -> str:
     if ai_reply:
         return ai_reply
 
+    # Mock 降级：按 5 段顺序推进，并在「体格检查」「辅助检查」小节结束后输出
+    # [PART: pe] / [PART: investigations] 分节标记（供前端解密对应的结果卡片）。
     count = len([m for m in messages if m.get("role") == "user"])
     if count == 0:
-        return "第一阶段问诊已结束。请先给出你的初步诊断和主要诊断依据。"
+        return "Thank you for completing the history. What would you consider the most likely diagnosis, and on what evidence?"
     if count == 1:
-        return "请补充你的鉴别诊断，以及下一步需要完善的辅助检查。"
+        return "What are your differential diagnoses, and how would you distinguish between them?"
     if count == 2:
-        return "请简述治疗原则、转诊指征和需要向患者交代的注意事项。"
-    return "好的，请结合刚才的信息，用一两句话总结你的诊疗计划。"
+        return "What physical examination would you perform, and what findings would you expect in this case?"
+    if count == 3:
+        return (
+            "Your physical-examination approach is reasonable.\n\n"
+            "[PART: pe]\n\n"
+            "Now, what investigations would you order, and what results do you expect?"
+        )
+    if count == 4:
+        return (
+            "Your investigation plan is appropriate.\n\n"
+            "[PART: investigations]\n\n"
+            "What is your management plan, red flags, and referral criteria?"
+        )
+    if count == 5:
+        return "Please summarise your overall management and follow-up plan in one or two sentences."
+    return "Thank you. When you are ready, please submit your review."
 
 
 def _extract_json(text: str) -> dict[str, Any] | None:

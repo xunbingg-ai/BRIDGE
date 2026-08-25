@@ -56,3 +56,16 @@ body {
 .markdown-body pre code {
   @apply bg-transparent p-0;
 }
+
+.markdown-body table {
+  @apply my-2 w-full border-collapse text-sm;
+}
+
+.markdown-body th,
+.markdown-body td {
+  @apply border border-slate-200 px-2 py-1 text-left align-top;
+}
+
+.markdown-body th {
+  @apply bg-slate-50 font-semibold;
+}

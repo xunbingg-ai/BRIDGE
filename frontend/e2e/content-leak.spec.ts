@@ -99,8 +99,27 @@ test('session: student speaks first; patient answers short and non-leaky', async
   console.log('PATIENT_REPLY=' + reply)
 
   expect(reply.length).toBeGreaterThan(0)
-  // 病人回复应短而不泄密（mock 较短；真实大模型回复也可能略长，放宽到 <1000 以兜住「整段病历外泄」）
+  // 病人回复应短而不泄密（真实大模型回复略长，放宽到 <1000 以兜住「整段病历外泄」）
   expect(reply.length).toBeLessThan(1000)
   // 病人回复不应泄露完整病历/答案
   expect(markersIn(reply)).toEqual([])
+
+  // 【Problem 2】追问「请再告诉我多一点信息」时，SP 一次只回答一个信息点：
+  // 不把整段现病史/病程一次性汇报出来，只补一个最相关的新细节。
+  const msgReq2 = page.waitForRequest(
+    (r) => r.method() === 'POST' && /\/sessions\/\d+\/message$/.test(r.url()),
+  )
+  await page
+    .getByPlaceholder(/输入你的问诊内容/)
+    .fill('请再告诉我多一点信息，比如什么时候开始的，还有没有别的症状？')
+  await page.getByRole('button', { name: '发送' }).click()
+  await msgReq2
+  await expect(markdown).toHaveCount(2)
+  const followUp = (await markdown.nth(1).textContent())?.trim() ?? ''
+  console.log('PATIENT_FOLLOWUP=' + followUp)
+
+  expect(followUp.length).toBeGreaterThan(0)
+  // 一次只给一个信息点：回复应短（一两句），远小于整段现病史的长度；且不出现结构标记
+  expect(followUp.length).toBeLessThan(500)
+  expect(markersIn(followUp)).toEqual([])
 })

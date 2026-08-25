@@ -2,25 +2,36 @@
 
 ## Current Objective
 
-- **Status（feat-012 已收尾）：** 上阶段按 `Example teaching case(2).md` 完善 12 例教学病例并引入「内容泄漏」回归；**本阶段已按用户更贴近真实 OSCE 的方案修复完毕**（见下方「REGRESSION — 内容泄漏（已修复）」）。
-- **修复结果：** `summary` 改为 `patient_scenario`（内容不变，DB 就地迁移）；卡片只显示派生的 OSCE 开场信息（年龄+性别+一个核心症状）；对话由学生先开口（取消 SP 开场自动气泡）；病人/考官 prompt 与卡片 API 均不泄露完整病历与答案；并用 `backend/.env` 真正接上 DeepSeek（此前 `.env` 未被加载、`ai_service` 读的是 `OPENAI_*` 导致一直走 Mock）。
-- **Branch / commit:** `260824-OSCE`，本地已提交 `2b74794`（summary→patient_scenario）、`fbbe2ee`（卡片去诊断标题 + 接真模型）、`077dd95`（/api/health 加 llm 模式）。均**未 push**（用户要求）。
+- **Status（feat-013 已收尾）：** 本阶段解决两个用户反馈的问题，均已完成并通过独立 evaluator e2e（真实 DeepSeek API，6/6 PASS）：
+  1. **查体 / 辅助检查结果在会话框中显示** → 参考前身 repo 的「viva 分节 tag + 解密卡片」方案：考官在「体格检查/辅助检查」小节点评后输出 `[PART: pe]` / `[PART: investigations]` 标记，前端把它从 UI 剥掉并在该消息处解密一张结果卡片（数据来自 reference_answer 的 `### 体格检查 / ### 辅助检查` 小节，经后端提取为 session.case 的 `peFindings/investigations`）。
+  2. **SP 被追问「请再告诉我多一点」时一次只答一个信息点** → 在 `patient_system_prompt` 加入「每次只回答一个信息点，一次最多只给一个新细节」的强制约束。
+- **Branch / commit:** `260824-OSCE`。本次改动**尚未提交**（用户未要求提交；`git status` 见 Files Changed）。
 
-## Known Issues / TODO（下一 agent）
+## 已解决（本阶段 feat-013）
 
-### 问题二（用户反馈，本次只记录不解决）
-- **现象：** 每个 case 的**体格检查客观结果**与**辅助检查结果**没有在「结构化问答/报告」的可视区域显示出来。
-- **判断（供排查）：** 参考前身 repo 有「PE/检查结果解密卡片」「viva 分节 tag（[PART: …]）」等能力，本仓库未实现。需核实：
-  1. `reference_answer` 的「结构化问答」小节是否遗漏了本病例的具体查体/辅助检查结果（内容问题），还是仅存在于独立的「体格检查/辅助检查」小节；
-  2. 报告页 `report/[sessionid].vue` 的 `AnswerBox`（`frontend/app/components/Report/AnswerBox.vue`）渲染 `referenceAnswer` 时，markdown 表格/`###` 分节是否被正确渲染（DOMPurify 是否拦截表格）；
-  3. 若目标是在**问诊结束后**把查体/辅助检查结果作为「解密卡片」呈现给学生/考官，需要新增数据结构与前端展示（参考前身 repo）。
-- **当前未改任何与问题二相关的代码。**
+### ① 查体/辅助检查结果解密卡片（Problem 1）
+- **后端**：`case_utils.case_viva_sections(reference_answer)` 从 `### 体格检查`/`### 辅助检查` 小节提取客观结果（12 例有内容，GP-003 无该小节 → 空串 → 前端不显示卡片）；`_extract_markdown_section` 支持标题带括号（如 PS-001「体格检查（精神检查 MSE + 躯体）」）。
+- `prompts.examiner_system_prompt` 拆成 5 段（诊断/鉴别/体格检查/辅助检查/处理），并在体格检查、辅助检查小节点评后输出 `[PART: pe]` / `[PART: investigations]`；强化「不得在问题或点评中泄露查体/检查结果」。
+- `sessions.py` `_case_payload`/`session_to_dict(include_case=True)` 返回 `peFindings`/`investigations`。
+- **前端**：`utils/viva.ts`（extractVivaParts/stripVivaTags/hasVivaPart）、`VivaResultCard.vue`；`ChatBox` 剥掉 `[PART:...]` 并从该消息解密两张结果卡片；`main.css` 补 markdown-body 表格样式；气泡 markdown 加 `chat-bubble-md`（供测试读取考官问题、避免误读卡片内容）。
+- **真实模型行为**：考官按「诊断→鉴别→体格检查→辅助检查→处理」顺序推进，Q1（诊断）常要求**只依据病史**（若回答泄露化验/影像结果会被要求重来）；到体格检查小节后输出 `[PART: pe]`，到辅助检查小节后输出 `[PART: investigations]`。
 
-### 小提醒
-- 卡片 `brief` 已是 `cases` 表字段（schema + 迁移回填 + seed_data + admin 表单/CSV 均可编辑、可查询）。默认值来源于 `backend/case_utils.py` 的 `CARD_BRIEFS`（仅作 seed/backfill 兜底）；管理员可覆盖。未提供 brief 的病例在读取时回退到派生（`_short_complaint`）。
-- 新增 e2e：`frontend/e2e/admin-case.spec.ts` 覆盖后台界面新增/编辑病例、CSV 批量导入、并核验落库 + 清理。运行 `cd frontend && bash e2e.sh` 会一并执行。
+### ② SP 一次只答一个信息点（Problem 2）
+- `prompts.patient_system_prompt` 新增：即使被追问「还有吗/再多一点/详细讲讲」，也只补充一个最相关的新信息点，绝不一次汇报或复述整段现病史；每次回答尽量一到两句话。
+- 真实模型实测：追问「请再告诉我多一点」时 SP 只回「就是三天前熬夜加班后受了点凉，晚上就开始发冷、发烧了。」（单句、无结构标记）。
 
-## REGRESSION — 内容泄漏（**已修复**，本阶段收尾）
+## Verification / DoD
+- `bash init.sh` 通过；`cd frontend && pnpm build` 通过（2.49 MB / 637 kB gzip）。
+- **独立 evaluator 子代理（真实 DeepSeek API）** 运行 `cd frontend && bash e2e.sh` **全部通过 6/6**：smoke 2/2、content-leak 2/2、admin-case 1/1、viva-reveal 1/1；`/api/health` 确认 `mode=real`；`frontend/test-results/.last-run.json` = `{"status":"passed"}`。
+- e2e 关键点：**不使用 LLM_MOCK**（playwright.config 已去掉；真实模型）。viva-reveal 测试用分阶段答案（病史-only / 计划-only）推进考官，避免被判定为「提前泄露后续结果」。
+- 环境：e2e 结束后端口 5000/3000 已清理（无残留进程）。
+
+## 小提醒
+- `content-leak.spec.ts` 已增补「追问请再告诉我多一点」断言（SP 回复 <500 字且无结构标记）；`viva-reveal.spec.ts` 依赖真实模型（非常规 mock 固定顺序），若遇到真实模型偶发「卡在某一问」可能需重跑一次。
+- GP-003 无 `### 体格检查`/`### 辅助检查` 小节，因此不会出现解密卡片（符合「可选字段」预期）。
+
+---
+## 历史记录 — 内容泄漏回归（feat-012，已修复）
 
 ### 原现象（已确认）
 1. 开始界面（首页病例卡片 `CaseBox.vue`）直接显示了完整大病历（= patient prompt + 诊断暗示），卡片本应只显示简短病例简介。

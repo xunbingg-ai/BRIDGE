@@ -12,7 +12,12 @@
     </div>
 
     <div class="flex h-[calc(100vh-13rem)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <ChatContainer :messages="sessionStore.messages" :loading="sessionStore.replyLoading" />
+      <ChatContainer
+        :messages="sessionStore.messages"
+        :loading="sessionStore.replyLoading"
+        :pe-findings="sessionStore.current?.peFindings"
+        :investigations="sessionStore.current?.investigations"
+      />
 
       <InputBox
         v-if="sessionStore.phase === 'patient' || sessionStore.phase === 'examiner'"

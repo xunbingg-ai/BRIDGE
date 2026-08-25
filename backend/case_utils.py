@@ -65,6 +65,36 @@ def _gender_label(gender: str) -> str:
     return ""
 
 
+def _extract_markdown_section(text: str, title: str) -> str:
+    """提取 ``reference_answer`` 中 ``### {title}...`` 小节的内容（去掉标题行）。
+
+    - 标题允许带括号说明（如 「体格检查（精神检查 MSE + 躯体）」）。
+    - 小节终点为下一个 ``### 标题``（恰好 3 个 ``#`` + 空格，排除 ``#### 子标题``）或字符串结束。
+    - 提取失败 / 缺失返回空串。
+    """
+    if not text:
+        return ""
+    pattern = re.compile(
+        rf"^###\s*{re.escape(title)}[^\n]*\n(.*?)(?=^###[ \t]|\Z)",
+        re.DOTALL | re.MULTILINE,
+    )
+    m = pattern.search(text)
+    return m.group(1).strip() if m else ""
+
+
+def case_viva_sections(reference_answer: str) -> dict[str, str]:
+    """从参考答案提取需要在「viva 阶段解密展示」的客观结果。
+
+    - ``pe_findings``：``### 体格检查`` 小节完整内容（含本病例客观查体发现）。
+    - ``investigations``：``### 辅助检查`` 小节完整内容（含本病例具体结果与判读）。
+    缺失时对应键为空字符串（前端据此隐藏解密卡片）。
+    """
+    return {
+        "pe_findings": _extract_markdown_section(reference_answer, "体格检查"),
+        "investigations": _extract_markdown_section(reference_answer, "辅助检查"),
+    }
+
+
 # 每个内置病例在卡片上显示的「OSCE 开场信息」：`年龄 + 性别 + 一个核心症状`。
 # 只保留最能练问题的主诉，**不带时间、不带过度精准的描述**（否则医学生一眼即知诊断，
 # 失去练习价值）。卡片展示用；未收录的病例（如 CSV 导入）回退到派生结果。

@@ -80,6 +80,10 @@ export interface SessionDetail {
   caseTitle?: string
   department?: string
   referenceAnswer?: string
+  /** viva 阶段解密展示的体格检查客观结果（markdown），无该小节时为空 */
+  peFindings?: string
+  /** viva 阶段解密展示的辅助检查结果（markdown），无该小节时为空 */
+  investigations?: string
 }
 
 export interface SessionHistoryItem {

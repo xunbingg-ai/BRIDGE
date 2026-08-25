@@ -9,6 +9,7 @@ from flask import Blueprint, g, jsonify, request
 
 import ai_service
 from auth import token_required
+from case_utils import case_viva_sections
 from database import get_db, now_iso
 
 bp = Blueprint("sessions", __name__, url_prefix="/api/sessions")
@@ -83,7 +84,7 @@ def _get_owned_session(session_id: int):
 
 
 def _case_payload(row) -> dict:
-    return {
+    payload = {
         "case_id": row["case_id"],
         "case_no": row["case_no"],
         "title": row["case_title"],
@@ -91,6 +92,9 @@ def _case_payload(row) -> dict:
         "patient_scenario": row["case_patient_scenario"],
         "reference_answer": row["case_reference_answer"],
     }
+    # 补充「体检 / 辅助检查」客观结果，供 viva 阶段解密卡片使用（见 prompts.viva 分节 tag）。
+    payload.update(case_viva_sections(row["case_reference_answer"]))
+    return payload
 
 
 def session_to_dict(row, include_case: bool = False) -> dict:
@@ -108,11 +112,14 @@ def session_to_dict(row, include_case: bool = False) -> dict:
         "updatedAt": row["updated_at"],
     }
     if include_case:
+        sections = case_viva_sections(row["case_reference_answer"])
         data.update(
             {
                 "caseTitle": row["case_title"],
                 "department": row["case_department"],
                 "referenceAnswer": row["case_reference_answer"],
+                "peFindings": sections["pe_findings"],
+                "investigations": sections["investigations"],
             }
         )
     return data

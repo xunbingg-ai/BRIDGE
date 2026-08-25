@@ -12,6 +12,8 @@
       v-for="message in messages"
       :key="`${message.id || message.created_at}-${message.content}`"
       :message="message"
+      :pe-findings="peFindings"
+      :investigations="investigations"
     />
 
     <div v-if="loading" class="flex justify-start">
@@ -29,6 +31,10 @@ import type { ChatMessage } from '~/types'
 const props = defineProps<{
   messages: ChatMessage[]
   loading?: boolean
+  /** viva 阶段解密展示的体格检查客观结果（markdown） */
+  peFindings?: string
+  /** viva 阶段解密展示的辅助检查结果（markdown） */
+  investigations?: string
 }>()
 
 const scrollRef = ref<HTMLElement | null>(null)

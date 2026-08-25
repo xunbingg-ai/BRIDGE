@@ -3,10 +3,24 @@
 ## Current State
 
 **Last Updated:** 2026-08-25 (session)
-**Session ID:** dsh-session (12 例教学病例内容完善 + 指南校准)
-**Active Feature:** 12 例教学病例内容完善 + 指南校准（feat-012）—— 已按用户方案修复「内容泄漏」回归：summary 改为 patient_scenario（内容不变），卡片只显示派生的 OSCE 开场信息（年龄+性别+一个核心症状），对话由学生先开口（取消 SP 开场自动气泡），病人/考官 prompt 与卡片 API 均不泄露完整病历与答案。
+**Session ID:** dsh-session (feat-013)
+**Active Feature:** 两个用户反馈问题（feat-013）——① 查体/辅助检查结果未在会话框显示 → 引入「viva 分节 tag + 解密卡片」；② SP 被追问「请再告诉我多一点」时汇报过多 → 在 patient prompt 加「一次只回答一个信息点」。均已完成，via 独立 evaluator e2e（真实 DeepSeek API，6/6 PASS）。
 
 ## Status
+
+### ✅ feat-013 已收尾 → 独立 evaluator e2e（真实 DeepSeek）全部通过 6/6
+
+**背景：** 用户反馈两个问题——① 每个 case 的体格检查客观结果与辅助检查结果没有在会话框（viva 阶段）显示；② SP 在被追问「请再告诉我多一点信息」时几乎把整段现病史汇报出来。修复参考前身 repo 的「viva 分节 tag + 解密卡片」方案。
+
+**实现（本会话）：**
+- **后端**：`case_utils.case_viva_sections(reference_answer)` 从 `### 体格检查`/`### 辅助检查` 小节提取客观结果（`_extract_markdown_section` 支持标题带括号）；`prompts.examiner_system_prompt` 拆成 5 段（诊断/鉴别/体格检查/辅助检查/处理）并在体格检查、辅助检查小节点评后输出 `[PART: pe]`/`[PART: investigations]`，强化「不得在问题或点评中泄露查体/检查结果」；`prompts.patient_system_prompt` 新增「每次只回答一个信息点，一次最多只给一个新细节」+「被追问也只用一两句话补一个细节」；`ai_service.examiner_reply` Mock 按 5 段推进并输出对应 tag；`sessions.py` `_case_payload`/`session_to_dict(include_case=True)` 返回 `peFindings`/`investigations`。
+- **前端**：`types` SessionDetail 增 `peFindings`/`investigations`；新增 `utils/viva.ts`（extractVivaParts/stripVivaTags/hasVivaPart）+ `Session/VivaResultCard.vue`；`ChatBox` 剥掉 `[PART:...]` 并从该消息解密两张结果卡片（气泡 markdown 加 `chat-bubble-md`）；`main.css` 补 markdown-body 表格样式。
+- **e2e**：`playwright.config` 改为**真实 DeepSeek 模式**（去掉 `LLM_MOCK`，timeout 调大）；新增 `viva-reveal.spec.ts`（真实模型下按「当前所问」+ 双语关键词给分阶段答案，推进到 PE/辅助检查 → 断言两张结果卡片出现、`[PART:]` 被剥掉、卡片有内容）；`content-leak.spec.ts` 增补「追问请再告诉我多一点」断言（SP 回复 <500 字且无结构标记）。
+- **验证**：`bash init.sh` 通过；`cd frontend && pnpm build` 通过（2.49 MB / 637 kB gzip）；**独立 evaluator 子代理（真实 DeepSeek API）`cd frontend && bash e2e.sh` 全部通过 6/6**（smoke 2/2、content-leak 2/2、admin-case 1/1、viva-reveal 1/1；`/api/health` 确认 `mode=real`；`frontend/test-results/.last-run.json`=`{"status":"passed"}`）。
+
+**真实模型关键行为：** 考官按「诊断→鉴别→体格检查→辅助检查→处理」顺序推进；Q1（诊断）常要求**只依据病史**（若回答过早泄露化验/影像结果会被要求重来，e2e 采用分阶段答案规避）；到体格检查小节后输出 `[PART: pe]`，到辅助检查小节后输出 `[PART: investigations]`。SP 在被追问「请再告诉我多一点」时只回「就是三天前熬夜加班后受了点凉，晚上就开始发冷、发烧了。」（单句）。
+
+**环境：** e2e 结束后端口 5000/3000 已清理。改动未提交（用户未要求）。
 
 ### ✅ REGRESSION（内容泄漏）已修复（feat-012 收尾）
 
