@@ -3,10 +3,49 @@
 ## Current State
 
 **Last Updated:** 2026-08-25 (session)
-**Session ID:** dsh-session (病例字段精简 + 统一 Prompt 骨架)
-**Active Feature:** 移除病例库 `difficulty` 字段；取消每个病例独立的 patient_prompt/examiner_prompt，改为统一的 patient/考官/评估 prompt 骨架函数（feat-011）
+**Session ID:** dsh-session (12 例教学病例内容完善 + 指南校准)
+**Active Feature:** 12 例教学病例内容完善 + 指南校准（feat-012）—— 已按用户方案修复「内容泄漏」回归：summary 改为 patient_scenario（内容不变），卡片只显示派生的 OSCE 开场信息（年龄+性别+一个核心症状），对话由学生先开口（取消 SP 开场自动气泡），病人/考官 prompt 与卡片 API 均不泄露完整病历与答案。
 
 ## Status
+
+### ✅ REGRESSION（内容泄漏）已修复（feat-012 收尾）
+
+**背景：** 上一阶段把 `summary` 从 ~30 字简介扩成完整大病历，导致 ① 病例卡片直接显示完整病历；② 病人 Mock 开场直接把 summary 回吐。按用户更贴近真实 OSCE 的方案修复。
+
+**修复内容（本次）：**
+- 把病例字段 `summary` 改名为 `patient_scenario`（**内容保持不变**），DB 就地迁移（`ALTER TABLE RENAME COLUMN summary→patient_scenario`，SQLite 3.25+，幂等），`schema.sql`/`seed_data.py`/内容管线脚本同步改名。
+- **卡片只显示派生的 OSCE 开场信息**：新增 `backend/case_utils.py`，`derive_patient_brief(patient_scenario)` 从「一般情况/主诉」提取 `年龄+性别+核心症状`（如「32岁，男性，发热、咳嗽、咳黄痰3天。」）；`/api/cases` 列表/详情只返回 `brief`，**不暴露 patient_scenario/reference_answer**。
+- **进入对话由学生先开口**：`create_session` 不再调用 `patient_reply` 生成 SP 开场气泡，`content.patient_phase` 为空、返回 `reply=''`；会话空态文案改为「请开始你的 OSCE 问诊 / 由你先向患者发问」。
+- **Mock 病人按所问回答**：`ai_service.patient_reply` 改用 `parse_patient_scenario` 提取主诉/时长/年龄，按关键字给简短、患者口吻的回答，**绝不回吐完整病历/答案**；真实 LLM 路径的 `patient_system_prompt` 强化「由学生先开口、只答被问、不主动泄露」。
+- 管理后台（admin）`summary` 字段改名 `patientScenario`（CaseForm 标签「病人剧本（完整病历）」）；CSV 模板/导入列改 `patient_scenario`。
+- 新增回归用例 `frontend/e2e/content-leak.spec.ts`（卡片仅显示 age/性别/核心症状；会话由学生先开口；病人回复简短且无完整病历标记）。
+
+**验证：** `bash init.sh` 通过；`cd frontend && pnpm build` 通过（2.49 MB）；独立 evaluator e2e（`cd frontend && bash e2e.sh`，含 smoke.spec.ts + content-leak.spec.ts）全部通过；`/api/cases` 返回 13 例且仅含 brief 字段；osce.db 迁移后 cases 列=case_id/case_no/title/department/patient_scenario/reference_answer/is_active/created_at/updated_at（13 例）。
+
+### 参考：旧 REGRESSION 记录（已解决）
+
+**现象（用户报告，已复现）：**
+1. 开始界面（首页病例卡片）直接显示了完整病历/患者脚本——卡片本应只显示简短病例简介。
+2. 进入对话后，患者开场/回复**直接把整个病例（近似答案）报出来**——本应只按需回答被问到的内容。
+
+**根因（内容放置导致）：** 本次把 `summary` 字段从不超 ~30 字的简短简介改成了**完整大病历**（一般情况/主诉/现病史/既往史/系统回顾/个人史/家族史/婚育史/月经史等），而系统里 `summary` 同时被两处直接暴露：
+- `frontend/app/components/Index/CaseBox.vue` 用 `{{ caseItem.summary }}` 渲染病例卡片（`line-clamp-3`）——现在卡片显示的是完整病历，即"patient prompt + 诊断暗示"。
+- `backend/ai_service.py` 的 **Mock** 病人路径（`llm_configs` 表为空、`app.py` 不加载 `.env`、`OPENAI_/DEEPSEEK_` 未注入 → 走 Mock）在开场消息返回 `f"医生您好，我最近确实不舒服。简单说就是：{summary}"`——`summary` 现在是完整病历，所以病人一开场就把整个病例/答案全报出来了。
+
+**相关数据/代码：** `backend/osce.db`、`backend/seed_data.py`（13 例，12 例 summary 已扩为完整大病历）、`case_content/*.md`、`backend/compile_case_content.py`（md→summary/reference_answer）；`backend/prompts.py`（patient_system_prompt 用 `summary` 作 SP scenario）；`backend/ai_service.py` `patient_reply` mock 分支；`frontend/app/components/Index/CaseBox.vue`（卡片渲染 summary）。`reference_answer`（现为完整答案）只在**报告页** `report/[sessionid].vue` 的 AnswerBox 渲染（评分后展示），不在卡片/对话中渲染，但**每个 session 响应都以 `include_case=True` 返回**它，前端未在前台展示故非本泄漏主因。
+
+**修复方向（供下一个 agent 参考，非本次实施）：** 病历完整性内容不应放在会被"卡片 + 病人 mock 开场"直接暴露的 `summary` 里。建议：① 保持 `summary` 为简短病例简介（卡片用）；② 完整病历/病人剧本另存（新字段或独立结构化区），仅供 `patient_system_prompt` 使用并靠 prompt 规则约束"只答被问、不主动泄露"，且 **mock 开场不能回吐 summary**；③ `reference_answer` 维持"评分后参考答案"定位；④ 用独立 evaluator 子代理跑 `cd frontend && bash e2e.sh` 并把"病例卡片/对话开场不泄露诊断"纳入断言。修复后需重新往返 seed_data.py 与 osce.db。
+
+### This Session — 12 例教学病例内容完善与指南校准（内容/文本任务，非代码）
+
+- [x] 确认基线：`bash init.sh` 通过（backend import + db init + nuxt prepare）；cases 表 13 例（12 内置 + GP-003）。
+- [x] 建立内容规范 `case_content/_TEMPLATE.md`：SUMMARY=患者口吻完整大病历（一般情况/主诉/现病史/既往史/手术外伤史/过敏史/用药史/系统回顾/个人生活史/家族史/婚育史/月经史，不含诊断/查体/辅助检查客观结果）；REFERENCE_ANSWER=完整教学答案（病例概览/诊断/鉴别诊断/体格检查/辅助检查应查vs特定指征/处理与管理(药物·非药物·随访)/问题清单/结局/结构化问答≥5道/指南依据）。
+- [x] 用 **AgentTeams** 为 12 个 case 各派一个独立子代理（8 个成员、12 个任务，成员完成后再认领剩余任务），每例独立 `web_search` 检索该病种最新中国+国际指南并逐项校准，产出写入 `case_content/<case_no>.md`。12 例全部完成。
+- [x] 指南校准覆盖面：CAP（中国 CAP 2016/基层 2018、IDSA/ATS 2019、NICE NG250）、T2DM（中国 2020/2024、ADA 2025、二甲双胍共识 2023、WHO/IDF）、阑尾炎（WSES Jerusalem 2020、中国 2020、SAGES 2024）、胆囊炎（TG18 I 级、中国胆道）、异位妊娠（ACOG PB193、NICE NG126、中国 2021）、子痫前期（ISSHP 2018、ACOG PB222 2020、NICE NG133、中国 2020）、婴幼儿腹泻（WHO、NICE CG84、ESPGHAN/ESPID 2014、中国 2024）、哮喘（GINA 2024/2025、中国 2016、NAEPP 2020、中国行动计划）、高血压（中国、ESC/ESH、ACC/AHA、OSA 排查）、GERD（中国 2022、Lyon 2.0 2023、ACG 2022、AGA 2024、WGO）、抑郁（中国 2025、NICE NG222、APA 2019、DSM-5/ICD-11）、惊恐（中国焦虑 2 版、NICE CG113、APA、WHO mhGAP、RANZCP 2018）。
+- [x] 内容管线：新增 `backend/compile_case_content.py`（编译 md→summary/reference_answer）、`backend/regenerate_seed.py`（重组 seed_data.py 13 例）、`backend/update_case_content.py`（就地更新 osce.db 12 例）。
+- [x] `backend/seed_data.py` 更新为 13 例（12 例换 enriched summary/reference_answer + GP-003 从 DB 保留）；`osce.db` 就地更新 12 例（summary 1071~1794、reference_answer 6013~12080 字符），GP-003 保持参考示例内容。
+- [x] 校验：`/api/cases` 返回 13 例且 reference_answer 为完整教学答案；`bash init.sh` 通过；app import OK。
+- [x] 启动后端 :5000（Flask）与前端 :3000（Nuxt 生产构建）供用户亲自端到端审核验证（本任务为内容/文本性质，按用户指示不跑 evaluator e2e）。
 
 ### This Session — 病例字段精简 + 统一 Prompt 骨架（最小改动）
 

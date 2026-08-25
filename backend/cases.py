@@ -2,25 +2,34 @@ from __future__ import annotations
 
 from flask import Blueprint, g, jsonify, request
 
+from case_utils import derive_patient_brief
+
 bp = Blueprint("cases", __name__, url_prefix="/api/cases")
 
 DEPARTMENTS = {"internal", "surgery", "obgyn", "pediatrics", "general", "psychiatry"}
 
 
 def case_to_dict(case) -> dict:
+    """公开列表 / 公共详情用：只暴露卡片所需的 OSCE 开场信息（派生 brief）。
+
+    绝不暴露 patient_scenario（完整病人剧本）或 reference_answer（参考答案），它们只在
+    后端 prompt / 报告页（经 session 接口）使用，不提供给考生端病例列表。
+    """
     return {
         "caseId": case["case_id"],
         "caseNo": case["case_no"],
         "title": case["title"],
         "department": case["department"],
-        "summary": case["summary"],
+        "brief": derive_patient_brief(case["patient_scenario"] or ""),
         "createdAt": case["created_at"],
         "updatedAt": case["updated_at"],
     }
 
 
 def case_detail_to_dict(case) -> dict:
+    """管理后台详情用：暴露完整病人剧本 + 参考答案，供管理员编辑。"""
     data = case_to_dict(case)
+    data["patientScenario"] = case["patient_scenario"]
     data["referenceAnswer"] = case["reference_answer"]
     data["isActive"] = case["is_active"]
     return data
@@ -43,7 +52,7 @@ def list_cases():
         params.append(department)
 
     if search:
-        where.append("(title LIKE ? OR summary LIKE ? OR case_no LIKE ?)")
+        where.append("(title LIKE ? OR patient_scenario LIKE ? OR case_no LIKE ?)")
         keyword = f"%{search}%"
         params.extend([keyword, keyword, keyword])
 
@@ -80,4 +89,5 @@ def get_case(case_id: int):
     ).fetchone()
     if case is None:
         return jsonify({"message": "病例不存在"}), 404
-    return jsonify({"case": case_detail_to_dict(case)})
+    # 公共详情不暴露病人剧本 / 参考答案，只返回卡片开场信息。
+    return jsonify({"case": case_to_dict(case)})

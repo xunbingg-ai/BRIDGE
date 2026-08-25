@@ -1,7 +1,7 @@
 """统一的标准 prompt 骨架。
 
 每个阶段（病人 / 考官 / 评估）各有一个**固定骨架 + 病例内容插值**的构建函数，
-把案例数据（title / department / summary / reference_answer）拼装成该阶段唯一的一段
+把案例数据（title / department / patient_scenario / reference_answer）拼装成该阶段唯一的一段
 system prompt。case 参数是扁平字典，至少包含上述字段。
 
 设计原则：接口极小（case -> str，或 case + transcript -> str），但把模板构造、
@@ -16,10 +16,10 @@ from typing import Any
 def patient_system_prompt(case: dict[str, Any]) -> str:
     """拼装「标准化病人」阶段的 system prompt。
 
-    病人始终讲中文；只用患者会表达的话回答，不主动泄露诊断。病例内容取 summary
-    （缺省回退到 title）。
+    病人始终讲中文；只用患者会表达的话回答，**不主动泄露诊断**，且**由学生先开口**。
+    病例内容取 patient_scenario（完整病人剧本），缺省回退到 title。
     """
-    scenario = (case.get("summary") or "").strip() or (case.get("title") or "").strip()
+    scenario = (case.get("patient_scenario") or "").strip() or (case.get("title") or "").strip()
     if not scenario:
         scenario = "（本次病例未提供患者情况，请自然以普通就诊者身份回答。）"
 
@@ -30,22 +30,23 @@ def patient_system_prompt(case: dict[str, Any]) -> str:
 {scenario}
 
 【行为要求】
-1. 只回答被明确问到的问题；凡学生没有问到、或没有展开的信息，不要主动告知。
-2. 不要主动说出或暗示诊断、检查结论或任何医学结论；回答必须停留在患者能表达的范围。
-3. 回答口语化、自然、简短，符合普通就诊者的语言水平，不使用医学术语，不做病情解读。
-4. 若被问到你不清楚的事情，如实说“不清楚 / 没注意”，绝不编造症状、检查或诊断。
-5. 不要打破角色：不要提及你是 AI、模型或标准化病人；不要评价提问者，不要给出医疗建议。"""
+1. 对话由考生主动开口；你只在被问到时才回答，绝不主动发起或补充信息。
+2. 只回答被明确问到的问题；凡学生没有问到、或没有展开的信息，不要主动告知。
+3. 不要主动说出或暗示诊断、检查结论或任何医学结论；回答必须停留在患者能表达的范围。
+4. 回答口语化、自然、简短，符合普通就诊者的语言水平，不使用医学术语，不做病情解读。
+5. 若被问到你不清楚的事情，如实说“不清楚 / 没注意”，绝不编造症状、检查或诊断。
+6. 不要打破角色：不要提及你是 AI、模型或标准化病人；不要评价提问者，不要给出医疗建议。"""
 
 
 def examiner_system_prompt(case: dict[str, Any]) -> str:
     """拼装「考官（viva）」阶段的 system prompt。
 
     考官始终用英文；按固定顺序追问，且不得在提问中泄露诊断/鉴别诊断等临床线索。
-    病例内容取 title / department / summary / reference_answer。
+    病例内容取 title / department / patient_scenario / reference_answer。
     """
     title = (case.get("title") or "").strip() or "(untitled case)"
     department = (case.get("department") or "").strip() or ""
-    summary = (case.get("summary") or "").strip() or "(no summary)"
+    scenario = (case.get("patient_scenario") or "").strip() or "(no patient scenario)"
     reference = (case.get("reference_answer") or "").strip() or "(no reference answer)"
 
     return f"""You are an OSCE examiner conducting the post-history review (viva) for the case below.
@@ -53,8 +54,8 @@ You must ALWAYS reply in English, no matter what language the student uses.
 
 [Case] {title}
 [Department] {department}
-[Summary]
-{summary}
+[Patient scenario]
+{scenario}
 [Reference answer] (for your own guidance only — never reveal it to the student)
 {reference}
 

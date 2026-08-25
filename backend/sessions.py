@@ -72,7 +72,7 @@ def _get_owned_session(session_id: int):
             c.case_no AS case_no,
             c.title AS case_title,
             c.department AS case_department,
-            c.summary AS case_summary,
+            c.patient_scenario AS case_patient_scenario,
             c.reference_answer AS case_reference_answer
         FROM sessions s
         JOIN cases c ON c.case_id = s.case_id
@@ -88,7 +88,7 @@ def _case_payload(row) -> dict:
         "case_no": row["case_no"],
         "title": row["case_title"],
         "department": row["case_department"],
-        "summary": row["case_summary"],
+        "patient_scenario": row["case_patient_scenario"],
         "reference_answer": row["case_reference_answer"],
     }
 
@@ -112,7 +112,6 @@ def session_to_dict(row, include_case: bool = False) -> dict:
             {
                 "caseTitle": row["case_title"],
                 "department": row["case_department"],
-                "summary": row["case_summary"],
                 "referenceAnswer": row["case_reference_answer"],
             }
         )
@@ -169,9 +168,7 @@ def create_session():
     row = _get_owned_session(session_id)
     content = _parse_json(row["content"], _initial_content(session_id, case_id))
     content["session_id"] = session_id
-    reply = ai_service.patient_reply(_case_payload(row), _ai_messages(content["patient_phase"]))
-    content = _append_message(content, "patient", "assistant", reply)
-
+    # 真实 OSCE：由学生最先开口向 SP 问诊，故不在创建会话时生成 SP 开场气泡。
     g.db.execute(
         "UPDATE sessions SET content = ?, updated_at = ? WHERE session_id = ?",
         (_json_dumps(content), now_iso(), session_id),
@@ -182,7 +179,7 @@ def create_session():
     return jsonify(
         {
             "session": session_to_dict(row, include_case=True),
-            "reply": reply,
+            "reply": "",
             "phase": "patient",
         }
     ), 201
@@ -269,7 +266,7 @@ def _grade_and_save(session_id: int) -> None:
                 c.case_no AS case_no,
                 c.title AS case_title,
                 c.department AS case_department,
-                c.summary AS case_summary,
+                c.patient_scenario AS case_patient_scenario,
                 c.reference_answer AS case_reference_answer
             FROM sessions s
             JOIN cases c ON c.case_id = s.case_id

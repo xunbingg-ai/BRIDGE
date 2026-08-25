@@ -19,7 +19,7 @@ CSV_FIELDS = [
     "case_no",
     "title",
     "department",
-    "summary",
+    "patient_scenario",
     "reference_answer",
 ]
 
@@ -27,7 +27,9 @@ CSV_FIELDS = [
 def _validate_case_payload(data: dict, partial: bool = False) -> tuple[dict, str | None]:
     title = (data.get("title") or "").strip()
     department = (data.get("department") or "").strip().lower()
-    summary = (data.get("summary") or "").strip()
+    patient_scenario = (
+        (data.get("patientScenario") or data.get("patient_scenario") or "").strip()
+    )
     reference_answer = (data.get("referenceAnswer") or data.get("reference_answer") or "").strip()
 
     if not partial or "title" in data:
@@ -45,7 +47,7 @@ def _validate_case_payload(data: dict, partial: bool = False) -> tuple[dict, str
         "case_no": case_no,
         "title": title,
         "department": department,
-        "summary": summary,
+        "patient_scenario": patient_scenario,
         "reference_answer": reference_answer,
     }, None
 
@@ -64,7 +66,7 @@ def list_admin_cases():
     where = ""
     params: list = []
     if search:
-        where = "WHERE title LIKE ? OR summary LIKE ? OR case_no LIKE ?"
+        where = "WHERE title LIKE ? OR patient_scenario LIKE ? OR case_no LIKE ?"
         keyword = f"%{search}%"
         params = [keyword, keyword, keyword]
 
@@ -113,14 +115,14 @@ def create_case():
     cursor = g.db.execute(
         """
         INSERT INTO cases (
-            case_no, title, department, summary, reference_answer, is_active
+            case_no, title, department, patient_scenario, reference_answer, is_active
         ) VALUES (?, ?, ?, ?, ?, 1)
         """,
         (
             case_no,
             payload["title"],
             payload["department"],
-            payload["summary"],
+            payload["patient_scenario"],
             payload["reference_answer"],
         ),
     )
@@ -152,7 +154,7 @@ def update_case(case_id: int):
     g.db.execute(
         """
         UPDATE cases
-        SET case_no = ?, title = ?, department = ?, summary = ?,
+        SET case_no = ?, title = ?, department = ?, patient_scenario = ?,
             reference_answer = ?, updated_at = ?
         WHERE case_id = ?
         """,
@@ -160,7 +162,7 @@ def update_case(case_id: int):
             case_no,
             payload["title"],
             payload["department"],
-            payload["summary"],
+            payload["patient_scenario"],
             payload["reference_answer"],
             now_iso(),
             case_id,
@@ -218,7 +220,7 @@ def download_case_template():
             "case_no": "",
             "title": "示例病例：发热伴咳嗽",
             "department": "internal",
-            "summary": "男性，30岁，发热咳嗽3天。",
+            "patient_scenario": "### 一般情况\n张先生（化名），男，30岁，上班族，汉族。\n### 主诉\n发热、咳嗽3天。",
             "reference_answer": "诊断：社区获得性肺炎；治疗：抗感染、对症支持。",
         }
     )
@@ -271,14 +273,14 @@ def import_cases():
             g.db.execute(
                 """
                 UPDATE cases
-                SET title = ?, department = ?, summary = ?,
+                SET title = ?, department = ?, patient_scenario = ?,
                     reference_answer = ?, updated_at = ?
                 WHERE case_no = ?
                 """,
                 (
                     payload["title"],
                     payload["department"],
-                    payload["summary"],
+                    payload["patient_scenario"],
                     payload["reference_answer"],
                     now_iso(),
                     case_no,
@@ -289,14 +291,14 @@ def import_cases():
             g.db.execute(
                 """
                 INSERT INTO cases (
-                    case_no, title, department, summary, reference_answer, is_active
+                    case_no, title, department, patient_scenario, reference_answer, is_active
                 ) VALUES (?, ?, ?, ?, ?, 1)
                 """,
                 (
                     case_no or _generate_case_no(),
                     payload["title"],
                     payload["department"],
-                    payload["summary"],
+                    payload["patient_scenario"],
                     payload["reference_answer"],
                 ),
             )

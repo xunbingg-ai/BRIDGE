@@ -3,7 +3,8 @@
     <div v-if="messages.length === 0" class="flex h-full items-center justify-center">
       <div class="text-center text-sm text-slate-400">
         <p class="mb-2 text-3xl">🩺</p>
-        <p>开始你的 OSCE 问诊练习</p>
+        <p>请开始你的 OSCE 问诊</p>
+        <p class="mt-1">由你先向患者发问，例如：您好，请问您哪里不舒服？</p>
       </div>
     </div>
 

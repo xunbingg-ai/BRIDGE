@@ -2,9 +2,54 @@
 
 ## Current Objective
 
-- **Goal:** 从 OSCE 病例库中移除 `difficulty` 字段（前端不再显示每个病例的难度），并取消每个病例独立的 `patient_prompt`/`examiner_prompt`，改为统一的 standard patient/考官/评估 prompt 骨架函数（`backend/prompts.py`），以函数形式把 case 内容拼接到各阶段 system prompt（最小改动 + 深度抽象）；由独立上下文的 evaluator 子代理做端到端验证（含导入新病例流程）。
-- **Current status:** 已完成并通过独立 evaluator 端到端验证（PASS，5/5）。工作区含本次改动（见下方 Files Changed），尚未提交。
-- **Branch / commit:** `260824-OSCE` @ `6f06207`（工作区有未提交改动，含本会话 feat-011）
+- **Status（feat-012 已收尾）：** 上阶段按 `Example teaching case(2).md` 完善 12 例教学病例并引入「内容泄漏」回归；**本阶段已按用户更贴近真实 OSCE 的方案修复完毕**（见下方「REGRESSION — 内容泄漏（已修复）」）。
+- **修复结果：** `summary` 改为 `patient_scenario`（内容不变，DB 就地迁移）；卡片只显示派生的 OSCE 开场信息（年龄+性别+一个核心症状）；对话由学生先开口（取消 SP 开场自动气泡）；病人/考官 prompt 与卡片 API 均不泄露完整病历与答案。
+- **Branch / commit:** `260824-OSCE` @ `78f153d`（工作区含本次修复 + 内容改动，尚未提交）。
+
+## REGRESSION — 内容泄漏（**已修复**，本阶段收尾）
+
+### 原现象（已确认）
+1. 开始界面（首页病例卡片 `CaseBox.vue`）直接显示了完整大病历（= patient prompt + 诊断暗示），卡片本应只显示简短病例简介。
+2. 进入对话后，病人开场/回复直接把整个病例（近似答案）报出来，而不是"按需回答被问到的内容"。
+
+### 根因
+`summary` 字段这次被从 ~30 字简短简介改成了**完整大病历**。而 `summary` 在两个地方被原样暴露：
+- **卡片**：`frontend/app/components/Index/CaseBox.vue` 用 `{{ caseItem.summary }}`（`line-clamp-3`）渲染病例卡片 → 现在显示完整病历。
+- **病人 Mock 开场**：`backend/ai_service.py` 的 Mock 分支（`llm_configs` 表为空、`app.py` 不加载 `.env`、`OPENAI_/DEEPSEEK_` 未注入 → 走 Mock）在开场消息返回 `f"医生您好，我最近确实不舒服。简单说就是：{summary}"` → `summary` 是完整病历，所以病人一开场就把整个病例/答案全吐出。
+
+`reference_answer`（现为完整答案）只在**报告页** `report/[sessionid].vue` 的 AnswerBox 渲染（评分后展示），不在卡片/对话中渲染，故非本泄漏主因；但它也随每个 session 响应以 `include_case=True` 返回，前端未在前台展示。
+
+### 相关文件
+- `backend/seed_data.py`（13 例，12 例 summary 已扩为完整大病历）
+- `backend/osce.db`（12 例就地更新）
+- `case_content/<case_no>.md`（每例内容源 + 指南依据）
+- `backend/compile_case_content.py`（md → summary/reference_answer）、`backend/update_case_content.py`（写库）、`backend/regenerate_seed.py`（重组 seed_data.py）
+- `backend/prompts.py`（`patient_system_prompt` 用 `summary` 作为标准病人 scenario）
+- `backend/ai_service.py`（`patient_reply` Mock 分支回吐 `summary`）
+- `frontend/app/components/Index/CaseBox.vue`（卡片渲染 `summary`）
+- `frontend/app/pages/report/[sessionid].vue`（`referenceAnswer` 只在报告页展示）
+
+### 修复方向（供 refer，非本轮实施）
+1. **保持 `summary` 为简短病例简介**（卡片用，~1 句，不泄露诊断/完整病史）。
+2. 完整大病历/病人剧本**另存**（新增字段或独立结构化区，如 `patient_scenario`/`sp_script`），只在 `patient_system_prompt` 使用，并靠 prompt 规则约束"只答被问、不主动泄露诊断/检查结论"，同时**不能让 mock 开场回吐该内容**。
+3. 若已配置真实 LLM（`llm_configs` 或 `OPENAI_API_KEY`/`DEEPSEEK_*`），也需确保病人靠 prompt 规则不提前泄露（真实模型当前未被启用；`.env` 未由 app.py 加载，需确认启动方式是否注入 env）。
+4. `reference_answer` 维持"评分后参考答案"定位（报告页展示即可）。
+5. 修改后，重新编排 `seed_data.py` 与 `osce.db` 内容（把"完整病历"从 `summary` 中移出），并**跑独立 evaluator 子代理 `cd frontend && bash e2e.sh`**，新增断言：病例卡片与对话开场**不出现**诊断/完整病史关键词。
+
+### 修复后验证（AGENTS.md 端到端门禁）
+- 独立 evaluator 子代理（全新上下文）运行 `cd frontend && bash e2e.sh` 全部通过。
+- 断言升级：首页病例卡片仅显示简短简介；进入会话后病人开场只给一句自然问诊，不吐诊断/完整病历；评分后报告页正常展示参考答案。
+- `bash init.sh` 通过；`git status` 确认改动范围。
+
+## Work Completed This Session — feat-012（12 例病例内容完善 + 指南校准）
+
+- [x] 建立内容规范 `case_content/_TEMPLATE.md`（SUMMARY=患者口吻完整大病历；REFERENCE_ANSWER=完整教学答案 + ≥5 道结构化问答 + 指南依据）。
+- [x] 用 **AgentTeams** 为 12 个 case 各派独立子代理（8 成员、12 任务，成员完成后认领剩余任务），每例独立 `web_search` 检索该病种最新中国+国际指南并逐项核查校准，产出写入 `case_content/<case_no>.md`（12 例全部完成，产物高质：诊断标准/分级/检查选择/治疗方案/随访均按最新指南，如 CAP CURB-65、T2DM ADA2025+中国2024、阑尾 WSES Jerusalem 2020、胆囊 TG18、异位妊娠 ACOG PB193、子痫前期 ISSHP/ACOG PB222、腹泻 WHO/NICE/中国2024、哮喘 GINA、高血压中国/ACC-AHA、GERD Lyon2.0/ACG2022、抑郁 NICE NG222/APA2019/中国2025、惊恐 NICE CG113/APA）。
+- [x] 内容管线脚本（`backend/`）：`compile_case_content.py`（md→summary/reference_answer）、`regenerate_seed.py`（重组 seed_data.py 13 例）、`update_case_content.py`（就地更新 osce.db）。
+- [x] `backend/seed_data.py` 更新为 13 例；`backend/osce.db` 就地更新 12 例；GP-003 保持参考示例内容（已对照 2021 AHA/ACC 胸痛指南核查看一致）。
+- [x] `bash init.sh` 基线通过（backend import + db init + nuxt prepare）；`/api/cases` 返回 13 例且 reference_answer 为完整教学答案。
+- [x] 启动后端 :5000（Flask 后台 job）、前端 :3000（Nuxt 生产构建后台 job）供用户亲自 e2e 审核。
+- [x] **未运行 e2e**：本任务为纯内容/文本性质，按用户指示不需要独立 evaluator 子代理进行端到端验证，由用户完成后亲自审核。
 
 ## Work Completed This Session
 
@@ -74,10 +119,12 @@
 1. `pwd` 确认工作目录为仓库根 `/mnt/d/BRIDGE`。
 2. Read `AGENTS.md`（启动流程、工作规则、完成定义、端到端验证门禁）。
 3. Read `feature_list.json`（功能状态事实来源）与 `progress.md`（本会话日志）。
-4. 运行 `bash init.sh` 验证基线（后端 import/db 迁移 + 前端 nuxt prepare）。
-5. 若要把本次改动提交：`git add` 涉及文件（不含 `docs/`）后 `git commit`，并推送到 `origin/260824-OSCE`（当前分支未配置 upstream，用 `git push -u origin 260824-OSCE`）。
+4. **先读本文件「REGRESSION — 内容泄漏」段**：这是当前最优先要修的问题。
+5. 运行 `bash init.sh` 验证基线（后端 import/db 迁移 + 前端 nuxt prepare）。
+6. 当前后端 :5000、前端 :3000 有后台任务在跑（job bash-3 / bash-4，内容已写入但泄漏未修），可用 `job_kill` 停掉后重新启动；本环境 shell 有 HTTP 代理（`http_proxy=http://172.26.64.1:7897`）会拦 localhost，用 curl 自查要加 `--noproxy '*'`，浏览器直接访问不受影响。
 
 ## Recommended Next Step
 
-- 提交本次 feat-011 改动（字段精简 + 统一 prompt 骨架），按 AGENTS.md 门禁已由独立 evaluator e2e PASS。
-- 后续可做生产化加固（更换默认 `JWT_SECRET`、收紧 CORS、正式化 DeepSeek 配置）或扩充永久 e2e 用例（注册/登录、会话流、导入删除等长流程，固化进 `frontend/e2e/` 供后续门禁复用）。
+- **feat-012 已收尾（无需再修内容泄漏）。** 独立 evaluator e2e（`cd frontend && bash e2e.sh`，含 `smoke.spec.ts` + `content-leak.spec.ts`）已全部通过；`bash init.sh`、`pnpm build` 通过。
+- 提交本阶段改动：`git add`（`backend/` 本案代码 + `case_utils.py`、内容管线脚本、`frontend/` 本案代码 + `e2e/content-leak.spec.ts`、`case_content/`、`feature_list.json`、`progress.md`、`session-handoff.md`、`.gitignore`），`git commit` 并 push 到 `origin/260824-OSCE`。`docs/` 为参考文档（未入库，可 gitignore）。
+- 后续可做生产化加固：更换默认 `JWT_SECRET`、收紧 CORS `origins:*`、正式化 DeepSeek 配置；或扩充 e2e 用例（注册/登录、完整会话流、个人中心）。

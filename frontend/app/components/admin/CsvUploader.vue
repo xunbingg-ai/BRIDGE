@@ -65,14 +65,14 @@ function downloadTemplate() {
     'case_no',
     'title',
     'department',
-    'summary',
+    'patient_scenario',
     'reference_answer',
   ]
   const sample = [
     '',
     '示例病例：发热伴咳嗽',
     'internal',
-    '男性，30岁，发热咳嗽3天。',
+    '### 一般情况\n张先生（化名），男，30岁，上班族，汉族。\n### 主诉\n发热、咳嗽3天。',
     '诊断：社区获得性肺炎；治疗：抗感染、对症支持。',
   ]
   const csv = [headers.join(','), sample.map((cell) => `"${cell.replaceAll('"', '""')}"`).join(',')].join('\n')

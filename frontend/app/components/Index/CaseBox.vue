@@ -18,7 +18,7 @@
       </div>
 
       <p class="mb-4 line-clamp-3 text-sm leading-6 text-slate-500">
-        {{ caseItem.summary }}
+        {{ caseItem.brief }}
       </p>
 
       <div class="flex items-center justify-between">

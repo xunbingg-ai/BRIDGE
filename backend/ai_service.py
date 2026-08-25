@@ -9,6 +9,7 @@ import requests
 
 import llm_config
 import prompts
+from case_utils import parse_patient_scenario
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
@@ -54,15 +55,28 @@ def patient_reply(case: dict[str, Any], messages: list[dict[str, str]]) -> str:
     if ai_reply:
         return ai_reply
 
+    # Mock 降级：绝不回吐完整病人剧本 / summary。只按学生问到的内容给简短、患者口吻的回答。
     last_text = messages[-1]["content"] if messages else ""
-    summary = case.get("summary") or "我最近身体有些不适。"
-    if len(messages) <= 1:
-        return f"医生您好，我最近确实不舒服。简单说就是：{summary}"
-    if any(word in last_text for word in ["多久", "什么时候", "几天"]):
-        return "大概有几天了，感觉比刚开始更明显一些。"
-    if any(word in last_text for word in ["哪里", "部位", "怎么"]):
-        return f"主要是和您刚才问的差不多，我再说具体一点：{summary}"
-    return "嗯，是的。我最近作息也不算好，症状有时候会加重，尤其是活动或者劳累之后。"
+    facts = parse_patient_scenario(case.get("patient_scenario") or "")
+    complaint = facts["complaint"].rstrip("。，,. ")
+    duration = facts["duration"].rstrip("。，,. ")
+
+    if any(word in last_text for word in ["哪里不舒服", "怎么不舒服", "什么症状", "哪里疼", "怎么了", "症状", "哪里不"]):
+        if complaint:
+            return f"我最近就是{complaint}，一直不太舒服，您帮我看看到底是怎么回事吧。"
+        return "我最近感觉不太舒服，您给我看看是哪里出了问题。"
+
+    if any(word in last_text for word in ["多久", "几天", "多长时间", "什么时候开始", "几天了", "什么时候"]):
+        if duration:
+            return f"大概有{duration}了，这几天都没怎么好转。"
+        return "大概有几天了吧，具体多少我也记不太清，反正一直不好。"
+
+    if any(word in last_text for word in ["多大", "年龄", "几岁", "男的女的", "性别", "多大了"]):
+        if facts["age"]:
+            return f"我{facts['age']}岁。"
+        return "哦，我也不算年轻了。"
+
+    return "嗯，是的。具体我也说不太清楚，就是感觉不太舒服。您还想了解哪方面的情况呢？"
 
 
 def examiner_reply(case: dict[str, Any], messages: list[dict[str, str]]) -> str:

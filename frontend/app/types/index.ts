@@ -20,7 +20,8 @@ export interface CaseSummary {
   caseNo: string
   title: string
   department: string
-  summary: string
+  /** OSCE 开场信息：年龄 + 性别 + 一个核心症状（后端从病人剧本派生），不含诊断/完整病史 */
+  brief: string
   createdAt: string
   updatedAt: string
 }
@@ -78,7 +79,6 @@ export interface SessionDetail {
   updatedAt: string
   caseTitle?: string
   department?: string
-  summary?: string
   referenceAnswer?: string
 }
 
@@ -101,6 +101,8 @@ export interface PagedResult<T> {
 }
 
 export interface CaseDetail extends CaseSummary {
+  /** 完整病人剧本（患者角色扮演用），只供管理后台编辑，不提供给考生端 */
+  patientScenario: string
   referenceAnswer: string
   isActive: number
 }

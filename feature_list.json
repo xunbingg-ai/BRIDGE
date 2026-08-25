@@ -87,6 +87,14 @@
       "dependencies": ["feat-001", "feat-005", "feat-006", "feat-007"],
       "status": "done",
       "evidence": "backend/prompts.py 三函数 + ai_service.py/sessions.py/admin.py/cases.py/database.py/schema.sql/seed_data.py 改造；前端 CaseBox/CaseManager/CaseForm/CsvUploader/types 去难度与 prompt 字段；bash init.sh + pnpm build 通过；冒烟 e2e 2/2 通过；独立 evaluator e2e PASS（5/5：官方病例全流程 + admin 管理 + 导入新病例并删除 + 冒烟 2 项）；osce.db 就地列迁移后 cases 列=case_id/case_no/title/department/summary/reference_answer/is_active/created_at/updated_at（13 例）；cases 表无 difficulty/patient_prompt/examiner_prompt"
+    },
+    {
+      "id": "feat-012",
+      "name": "12 个教学病例内容完善与指南校准（含回归修复：内容泄漏）",
+      "description": "把 IM-001/IM-002、SG-001/002、OG-001/002、PD-001/002、GP-001/002、PS-001/002 共 12 例按 Example teaching case(2).md 的完整度完善：summary 扩为完整大病历，reference_answer 扩为完整参考答案+结构化问答；每例由独立子代理检索该病种最新中国+国际指南并逐项校准。随后按用户方案修复「内容泄漏」回归：summary 改为 patient_scenario（内容不变），卡片只显示派生的 OSCE 开场信息（年龄+性别+一个核心症状），对话由学生先开口（取消 SP 开场自动气泡），病人/考官 prompt 与卡片 API 均不泄露完整病历与答案。",
+      "dependencies": ["feat-001", "feat-007", "feat-011"],
+      "status": "done",
+      "evidence": "case_content/<case_no>.md 12 例（含指南依据）+ _TEMPLATE.md（头改为 PATIENT_SCENARIO）；backend/compile_case_content.py + update_case_content.py + regenerate_seed.py（改为 patient_scenario）；seed_data.py 13 例 key 改 patient_scenario；osce.db 就地迁移（ALTER TABLE RENAME COLUMN summary→patient_scenario，内容保留，13 例）；新增 backend/case_utils.py（parse/derive_brief）；卡片 API /api/cases 只返回 brief（如 '32岁，男性，发热、咳嗽、咳黄痰3天。'），不暴露 patient_scenario/reference_answer；create_session 不再生成 SP 开场气泡（content.patient_phase 空，reply=''）；patient_reply Mock 按学生所问给简短患者口吻回答，不回吐完整病历/答案。bash init.sh 通过；cd frontend && pnpm build 通过（2.49 MB）。新增 frontend/e2e/content-leak.spec.ts（卡片仅显示 age/性别/核心症状；会话由学生先开口；病人回复简短且无完整病历标记），与 smoke.spec.ts 一并跑独立 evaluator e2e 全部通过。参考 report 页仍展示 referenceAnswer（评分后）。"
     }
   ]
 }

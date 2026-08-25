@@ -78,9 +78,14 @@ Thumbs.db
 
 # ---------- Agent skills/config (local, not version-tracked) ----------
 .agents/
+.agent-teams/
 
 # ---------- Reference docs / case templates (internal working files) ----------
 BRIDGE - 首期需求文档*.md
 Case repository - Template*.xlsx
 Example teaching case*.md
 OSCE开发*.md
+
+# ---------- Regenerable build artifact / reference docs (not committed) ----------
+case_content/_compiled.json
+docs/

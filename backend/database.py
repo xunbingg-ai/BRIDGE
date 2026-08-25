@@ -44,13 +44,17 @@ def init_db() -> None:
 def _migrate_cases(conn: sqlite3.Connection) -> None:
     """把旧版 cases 表迁移到新 schema。
 
-    旧表含 difficulty / patient_prompt / examiner_prompt 三列，现已移除。对已存在的
-    数据库做就地删除列迁移（幂等），保留现有病例与会话数据。SQLite 3.35+ 支持 DROP COLUMN。
+    - 旧表含 difficulty / patient_prompt / examiner_prompt 三列，现已移除，就地删除列（幂等）。
+    - 旧表把「病人剧本」放在 summary 列（曾被卡片/mock 直接暴露）。本迁移把该列改名为
+      patient_scenario（内容不变），使卡片改用派生的 brief、病人仅按 prompt 回答。
+      SQLite 3.25+ 支持 RENAME COLUMN。
     """
     columns = [row["name"] for row in conn.execute("PRAGMA table_info(cases)").fetchall()]
     for legacy in ("difficulty", "patient_prompt", "examiner_prompt"):
         if legacy in columns:
             conn.execute(f"ALTER TABLE cases DROP COLUMN {legacy}")
+    if "summary" in columns and "patient_scenario" not in columns:
+        conn.execute("ALTER TABLE cases RENAME COLUMN summary TO patient_scenario")
 
 
 def seed_admin(conn: sqlite3.Connection) -> None:
@@ -76,14 +80,14 @@ def seed_cases(conn: sqlite3.Connection) -> None:
         conn.execute(
             """
             INSERT INTO cases (
-                case_no, title, department, summary, reference_answer, is_active
+                case_no, title, department, patient_scenario, reference_answer, is_active
             ) VALUES (?, ?, ?, ?, ?, 1)
             """,
             (
                 case["case_no"],
                 case["title"],
                 case["department"],
-                case["summary"],
+                case["patient_scenario"],
                 case["reference_answer"],
             ),
         )
