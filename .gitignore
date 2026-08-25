@@ -1,38 +1,79 @@
-# Nuxt dev/build outputs
-.output
-.data
-.nuxt
-.nitro
-.cache
-dist
+# ============================================================================
+# Dependency & build isolation — DO NOT COMMIT these.
+# pip/npm deps live locally (backend/.venv, frontend/node_modules) and are
+# ignored so they never pollute the global env or leak into git.
+# ============================================================================
 
-# Node dependencies
-node_modules
+# ---------- Node / npm / pnpm ----------
+node_modules/
+.pnpm-store/
+.npm/
+*.tgz
+pnpm-debug.log*
+npm-debug.log*
+yarn-error.log*
 
-# Logs
-logs
+# ---------- Nuxt / Vite build & dev outputs ----------
+.nuxt/
+.output/
+.nitro/
+.data/
+.cache/
+dist/
+.generates/
+
+# ---------- Python / pip / venv ----------
+.venv/
+venv/
+env/
+*.egg-info/
+*.egg
+build/
+.eggs/
+
+# Python caches & coverage
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+*.so
+*.whl
+pip-wheel-metadata/
+
+# ---------- Backend runtime data ----------
+backend/osce.db
+
+# ---------- Logs ----------
+logs/
 *.log
 
-# Misc
+# ---------- Local env files (secrets / config) ----------
+.env
+.env.*
+*.local
+!.env.example
+
+# ---------- Editors / OS ----------
 .DS_Store
 .fleet
 .idea
+.vscode/
+*.swp
+*~
+Thumbs.db
 
-# Local env files
-.env
-.env.*
-!.env.example
-
-# Agent skills/config (local, not version-tracked)
+# ---------- Agent skills/config (local, not version-tracked) ----------
 .agents/
 
-# Python backend
-backend/.venv/
-backend/osce.db
-__pycache__/
-*.pyc
-
-# Reference docs / case templates (internal working files, not version-tracked)
+# ---------- Reference docs / case templates (internal working files) ----------
 BRIDGE - 首期需求文档*.md
 Case repository - Template*.xlsx
 Example teaching case*.md

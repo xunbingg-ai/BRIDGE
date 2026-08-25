@@ -2,9 +2,9 @@
 
 ## Current State
 
-**Last Updated:** 2026-08-24 (session)
-**Session ID:** dsh-session (BRIDGE OSCE 分支整理)
-**Active Feature:** feat-008 — 仓库 Harness 脚手架（五件套）
+**Last Updated:** 2026-08-25 (session)
+**Session ID:** dsh-session (依赖本地化 + gitignore 硬化)
+**Active Feature:** feat-009 — 依赖本地化与 gitignore 硬化
 
 ## Status
 
@@ -22,15 +22,24 @@
 - [x] 删除 `feat/010-011-case-llm` 分支（本地+远端），备份 tag `archive/feat-010-011`（= `5b71a80`，含 feat-010/011 代码 + 中文版 Cecilia 病例）已推送 GitHub
 - [x] 修复病例库：补回缺失的 OG-002，病例库恢复为 **13 例**（12 内置 + GP-003）
 
+### This Session (feat-009) — 依赖本地化与 gitignore 硬化
+
+- [x] 确认当前分支 `260824-OSCE` 与工作区干净（无依赖产物被 git 跟踪）
+- [x] 确认后端 pip 依赖隔离在 `backend/.venv`（`.venv/bin/python`，含自建 `.gitignore`）
+- [x] 确认前端 npm/pnpm 依赖隔离在 `frontend/node_modules`（`.pnpm` store，690 包）
+- [x] 硬化 `.gitignore`：新增 `.pytest_cache/.ruff_cache/.mypy_cache/__pycache__/*.egg-info/.coverage`、泛化 `.venv/`、补 `.output/.nuxt/.data/.nitro`、日志/构建产物等；并保留 lockfile（pnpm-lock.yaml）、manifests、configs 仍可跟踪
+- [x] `git check-ignore` 覆盖全部依赖/缓存目录（node_modules/.nuxt/.output/dist/.venv/.pytest_cache/__pycache__）；合法文件 package.json/pnpm-lock.yaml/requirements.txt/.env.example 等未被误忽略
+- [x] `bash init.sh` 通过（后端 deps/import/db + 前端 nuxt prepare）
+- [x] `cd frontend && pnpm build` 全量生产构建通过（2.49 MB / 637 kB gzip）
+
 ### What's In Progress
 
-- [ ] feat-008：创建 harness-creator 五件套（AGENTS.md / feature_list.json / progress.md / session-handoff.md / init.sh）
-  - 待验证：`./init.sh` 跑通
+- 无（当前会话工作已完成）
 
 ### What's Next
 
-1. 运行 `./init.sh` 验证五件套基线（后端依赖 + 前端构建）
-2. 将五件套提交到 `260824-OSCE` 分支
+1.（可选）新增教学病例：从 `feature_list.json` 选下一个未完成项
+2. 生产化加固：更换默认 `JWT_SECRET`、收紧 CORS `origins:*`、把 DeepSeek 配置正式化（环境变量持久化或后台 LLM 配置）
 3. 确认后端(:5000)/前端(:3000) 服务正常，网站 http://localhost:3000 可访问
 
 ## Blockers / Risks

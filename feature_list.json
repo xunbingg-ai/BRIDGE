@@ -61,8 +61,16 @@
       "name": "仓库 Harness 脚手架",
       "description": "为 OSCE 分支建立 harness-creator 规范的五件套：AGENTS.md、feature_list.json、progress.md、init.sh、session-handoff.md",
       "dependencies": [],
-      "status": "in-progress",
-      "evidence": "AGENTS.md/feature_list.json/progress.md/session-handoff.md/init.sh 已创建，待 ./init.sh 验证通过"
+      "status": "done",
+      "evidence": "五件套已创建并提交；bash init.sh 基线验证通过（后端 import + 前端 nuxt prepare/build）"
+    },
+    {
+      "id": "feat-009",
+      "name": "依赖本地化与 gitignore 硬化",
+      "description": "pip 依赖隔离到 backend/.venv、npm/pnpm 依赖隔离到 frontend/node_modules；.gitignore 覆盖所有依赖/缓存/构建目录（.venv node_modules .pytest_cache .ruff_cache .mypy_cache __pycache__ .output .nuxt dist osce.db 等），确保依赖不污染全局、不进入版本库",
+      "dependencies": ["feat-008"],
+      "status": "done",
+      "evidence": "backend/.venv 与 frontend/node_modules 均为本地隔离；git check-ignore 覆盖全部依赖/缓存目录；无任何依赖产物被 git 跟踪；bash init.sh 与 pnpm build 通过"
     }
   ]
 }
