@@ -14,7 +14,6 @@ def case_to_dict(case) -> dict:
         "title": case["title"],
         "department": case["department"],
         "summary": case["summary"],
-        "difficulty": case["difficulty"],
         "createdAt": case["created_at"],
         "updatedAt": case["updated_at"],
     }
@@ -22,8 +21,6 @@ def case_to_dict(case) -> dict:
 
 def case_detail_to_dict(case) -> dict:
     data = case_to_dict(case)
-    data["patientPrompt"] = case["patient_prompt"]
-    data["examinerPrompt"] = case["examiner_prompt"]
     data["referenceAnswer"] = case["reference_answer"]
     data["isActive"] = case["is_active"]
     return data

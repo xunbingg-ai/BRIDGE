@@ -8,6 +8,7 @@ from typing import Any
 import requests
 
 import llm_config
+import prompts
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
@@ -47,7 +48,7 @@ def _chat_completion(messages: list[dict[str, str]], temperature: float = 0.3) -
 
 def patient_reply(case: dict[str, Any], messages: list[dict[str, str]]) -> str:
     ai_reply = _chat_completion(
-        [{"role": "system", "content": case["patient_prompt"]}, *messages],
+        [{"role": "system", "content": prompts.patient_system_prompt(case)}, *messages],
         temperature=0.5,
     )
     if ai_reply:
@@ -66,7 +67,7 @@ def patient_reply(case: dict[str, Any], messages: list[dict[str, str]]) -> str:
 
 def examiner_reply(case: dict[str, Any], messages: list[dict[str, str]]) -> str:
     ai_reply = _chat_completion(
-        [{"role": "system", "content": case["examiner_prompt"]}, *messages],
+        [{"role": "system", "content": prompts.examiner_system_prompt(case)}, *messages],
         temperature=0.4,
     )
     if ai_reply:
@@ -157,32 +158,31 @@ def _now_for_grade() -> str:
     return datetime.now().astimezone().isoformat(timespec="seconds")
 
 
+def _build_transcript(content: dict[str, Any]) -> str:
+    """把会话内容扁平化为可读的对话文本，供评估 prompt 内联使用。"""
+    lines: list[str] = []
+    for phase in ("patient_phase", "examiner_phase"):
+        for m in content.get(phase, []) or []:
+            role = m.get("role") or "user"
+            text = (m.get("content") or "").strip()
+            if role in {"user", "assistant"} and text:
+                label = "Student" if role == "user" else (
+                    "Examiner" if phase == "examiner_phase" else "Patient"
+                )
+                lines.append(f"{label}: {text}")
+    return "\n\n".join(lines)
+
+
 def grade_session(case: dict[str, Any], content: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
-    prompt = (
-        "你是OSCE考官，请根据病例、参考答案和考生完整对话进行评分。"
-        "只返回一个JSON对象，不要包含Markdown代码块。格式如下："
-        '{"total_score": 82.5, "max_score": 100, '
-        '"sub_scores": {"history_taking": 25, "communication": 22, '
-        '"clinical_reasoning": 20, "professionalism": 15.5}, '
-        '"summary": "总体评价", "strengths": ["优点"], '
-        '"weaknesses": ["不足"], "suggestions": ["建议"], '
-        '"detailed_comments": [{"criteria": "病史采集", "score": 25, '
-        '"max_score": 30, "comment": "具体评价"}]}'
-    )
+    transcript = _build_transcript(content)
+    system_prompt = prompts.assessment_system_prompt(case, transcript)
 
     ai_reply = _chat_completion(
         [
-            {"role": "system", "content": prompt},
+            {"role": "system", "content": system_prompt},
             {
                 "role": "user",
-                "content": json.dumps(
-                    {
-                        "case_title": case.get("title"),
-                        "reference_answer": case.get("reference_answer"),
-                        "conversation": content,
-                    },
-                    ensure_ascii=False,
-                ),
+                "content": "Please provide the assessment now. Reply with ONLY the JSON object.",
             },
         ],
         temperature=0.1,

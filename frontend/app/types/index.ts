@@ -21,7 +21,6 @@ export interface CaseSummary {
   title: string
   department: string
   summary: string
-  difficulty: number
   createdAt: string
   updatedAt: string
 }
@@ -102,8 +101,6 @@ export interface PagedResult<T> {
 }
 
 export interface CaseDetail extends CaseSummary {
-  patientPrompt: string
-  examinerPrompt: string
   referenceAnswer: string
   isActive: number
 }

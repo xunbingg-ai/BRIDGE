@@ -66,9 +66,6 @@ function downloadTemplate() {
     'title',
     'department',
     'summary',
-    'difficulty',
-    'patient_prompt',
-    'examiner_prompt',
     'reference_answer',
   ]
   const sample = [
@@ -76,9 +73,6 @@ function downloadTemplate() {
     '示例病例：发热伴咳嗽',
     'internal',
     '男性，30岁，发热咳嗽3天。',
-    '2',
-    '你是一名30岁男性患者，请以患者视角回答。',
-    '你是OSCE考官，请追问诊断依据和治疗原则。',
     '诊断：社区获得性肺炎；治疗：抗感染、对症支持。',
   ]
   const csv = [headers.join(','), sample.map((cell) => `"${cell.replaceAll('"', '""')}"`).join(',')].join('\n')

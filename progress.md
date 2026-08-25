@@ -3,10 +3,31 @@
 ## Current State
 
 **Last Updated:** 2026-08-25 (session)
-**Session ID:** dsh-session (移除 8 分钟倒计时功能)
-**Active Feature:** 移除问诊会话的 8 分钟倒计时 / 时限（属于 feat-003 的调整）
+**Session ID:** dsh-session (病例字段精简 + 统一 Prompt 骨架)
+**Active Feature:** 移除病例库 `difficulty` 字段；取消每个病例独立的 patient_prompt/examiner_prompt，改为统一的 patient/考官/评估 prompt 骨架函数（feat-011）
 
 ## Status
+
+### This Session — 病例字段精简 + 统一 Prompt 骨架（最小改动）
+
+- [x] **移除病例库 `difficulty` 字段**（后端 schema + API + 前端展示）：
+  - `backend/schema.sql` `cases` 表去掉 `difficulty` 列；
+  - `backend/seed_data.py` 去掉全部 12 例的 `difficulty`；
+  - `backend/cases.py` `case_to_dict`/`case_detail_to_dict` 去掉 `difficulty`；
+  - `backend/admin.py` 校验/CRUD/导入/CSV 模板去掉 `difficulty`；
+  - 前端 `types/index.ts`（CaseSummary 去 `difficulty`）、`CaseBox.vue`（去难度徽标）、`CaseManager.vue`（去「难度」列）、`CaseForm.vue`（去难度下拉）、`CsvUploader.vue`（CSV 模板去难度列）。
+  - 对已存在的 `backend/osce.db` 做就地列迁移（`database._migrate_cases`，幂等 `ALTER TABLE ... DROP COLUMN`），保留 13 例既有病例与既有会话。
+- [x] **取消每个病例独立的 `patient_prompt`/`examiner_prompt`**，改为统一 prompt 骨架函数（`backend/prompts.py`）：
+  - 新增 `patient_system_prompt(case)` / `examiner_system_prompt(case)` / `assessment_system_prompt(case, transcript)`，接口极小（case -> str 或 case+transcript -> str），把模板构造/插值/规则全部封装（深度抽象）。
+  - `backend/ai_service.py`：`patient_reply`/`examiner_reply` 改用 `prompts.*`；`grade_session` 改为先 `_build_transcript(content)` 扁平化对话，再内联进 `assessment_system_prompt`，并发送固定 user 消息（对齐 reference 文档 §4.2）。
+  - `backend/sessions.py`：`_get_owned_session`/`_grade_and_save` 查询去掉 prompt 列、补 `c.case_no`；`_case_payload` 改为返回 title/department/summary/reference_answer/case_id/case_no。
+  - `backend/admin.py`、`backend/cases.py`、`backend/database.py`：去掉 patient/examiner prompt 相关写入与字段。
+  - 前端 `CaseForm.vue` 去掉「AI 病人提示词/考官提示词」输入框；`CsvUploader.vue` CSV 模板去掉这两列；`types/index.ts` `CaseDetail` 去掉 `patientPrompt`/`examinerPrompt`。
+  - 语言规则：SP 说中文、考官说英文，本次不做中英文切换（在骨架中硬性规定）。
+- [x] `bash init.sh` 基线通过（backend import + db 迁移/init + nuxt prepare）。
+- [x] `cd frontend && pnpm build` 全量生产构建通过（exit 0，2.49 MB / 636 kB gzip）。
+- [x] 冒烟 e2e：`cd frontend && bash e2e.sh` 2/2 通过（病例列表 + admin 登录）。
+- [x] **独立 evaluator 子代理端到端验证通过（PASS）**：`cd frontend && bash e2e.sh` 5/5 通过（官方病例全流程 + admin 管理 + 导入新病例并删除 + 冒烟 2 项）；`cases` 表列已确认为 `case_id/case_no/title/department/summary/reference_answer/is_active/created_at/updated_at`（无 `difficulty`/`patient_prompt`/`examiner_prompt`），病例 13 例；前端无难度徽标/「难度」列/难度下拉/AI病人-考官提示词输入框；`prompts.patient_system_prompt`（中文含摘要）、`examiner_system_prompt`（英文含参考答案）、`assessment_system_prompt`（要求 JSON、内联对话）均实测通过；导入用例 `EVAL-1787634428200` 已删除（DB count=0，总病例回到 13）；临时 spec/CSV 已清理，`frontend/e2e/` 仅剩 `smoke.spec.ts`；全程无未捕获页面错误。
 
 ### This Session — 移除倒计时功能（最小改动）
 

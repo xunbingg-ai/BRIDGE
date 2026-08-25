@@ -79,6 +79,14 @@
       "dependencies": ["feat-009"],
       "status": "done",
       "evidence": "@playwright/test@1.62.1 已安装（frontend/node_modules，pnpm-lock 更新）；Chromium 装于 ~/.cache/ms-playwright（channel: chromium，跨会话可用）；bash e2e.sh 冒烟 2/2 通过（首页病例列表 + admin 登录）；e2e 脚本绕过环境代理对 localhost 的干扰；AGENTS.md 已加入「端到端验证门禁」"
+    },
+    {
+      "id": "feat-011",
+      "name": "病例字段精简与统一 Prompt 骨架",
+      "description": "移除病例库的 difficulty 字段（后端 schema/API + 前端展示全去）；取消每个病例独立的 patient_prompt/examiner_prompt，改为统一 standard patient/考官/评估 prompt 骨架函数（backend/prompts.py，深度抽象），按 case 的 title/department/summary/reference_answer 拼接到各阶段 system prompt；SP 说中文、考官说英文（不做中英文切换）；对既有 osce.db 做就地列迁移",
+      "dependencies": ["feat-001", "feat-005", "feat-006", "feat-007"],
+      "status": "done",
+      "evidence": "backend/prompts.py 三函数 + ai_service.py/sessions.py/admin.py/cases.py/database.py/schema.sql/seed_data.py 改造；前端 CaseBox/CaseManager/CaseForm/CsvUploader/types 去难度与 prompt 字段；bash init.sh + pnpm build 通过；冒烟 e2e 2/2 通过；独立 evaluator e2e PASS（5/5：官方病例全流程 + admin 管理 + 导入新病例并删除 + 冒烟 2 项）；osce.db 就地列迁移后 cases 列=case_id/case_no/title/department/summary/reference_answer/is_active/created_at/updated_at（13 例）；cases 表无 difficulty/patient_prompt/examiner_prompt"
     }
   ]
 }

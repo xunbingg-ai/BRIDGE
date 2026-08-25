@@ -56,7 +56,6 @@
             <th class="pb-3 pr-4">编号</th>
             <th class="pb-3 pr-4">标题</th>
             <th class="pb-3 pr-4">门类</th>
-            <th class="pb-3 pr-4">难度</th>
             <th class="pb-3 text-right">操作</th>
           </tr>
         </thead>
@@ -73,7 +72,6 @@
             <td class="py-3 pr-4 text-slate-500">{{ item.caseNo }}</td>
             <td class="py-3 pr-4 font-medium text-slate-800">{{ item.title }}</td>
             <td class="py-3 pr-4 text-slate-600">{{ departmentLabel(item.department) }}</td>
-            <td class="py-3 pr-4 text-slate-600">{{ difficultyLabel(item.difficulty) }}</td>
             <td class="py-3 text-right">
               <div class="flex justify-end gap-3">
                 <button type="button" class="font-medium text-blue-600 hover:underline" @click="openEdit(item)">
@@ -127,11 +125,6 @@ const allSelected = computed(() => items.value.length > 0 && selectedIds.value.l
 
 function departmentLabel(value: string) {
   return departmentMap[value] || value
-}
-
-function difficultyLabel(value: number) {
-  const map: Record<number, string> = { 1: '简单', 2: '中等', 3: '困难' }
-  return map[value] || '中等'
 }
 
 function toggleAll() {

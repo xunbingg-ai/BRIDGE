@@ -32,30 +32,11 @@
               </option>
             </select>
           </label>
-
-          <label class="block text-sm">
-            <span class="mb-1 block text-slate-600">难度</span>
-            <select v-model.number="form.difficulty" class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100">
-              <option :value="1">简单</option>
-              <option :value="2">中等</option>
-              <option :value="3">困难</option>
-            </select>
-          </label>
         </div>
 
         <label class="block text-sm">
           <span class="mb-1 block text-slate-600">病例简介</span>
           <textarea v-model="form.summary" rows="2" class="w-full resize-y rounded-lg border border-slate-200 px-3 py-2.5 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
-        </label>
-
-        <label class="block text-sm">
-          <span class="mb-1 block text-slate-600">AI 病人提示词</span>
-          <textarea v-model="form.patientPrompt" rows="4" class="w-full resize-y rounded-lg border border-slate-200 px-3 py-2.5 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
-        </label>
-
-        <label class="block text-sm">
-          <span class="mb-1 block text-slate-600">AI 考官提示词</span>
-          <textarea v-model="form.examinerPrompt" rows="4" class="w-full resize-y rounded-lg border border-slate-200 px-3 py-2.5 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
         </label>
 
         <label class="block text-sm">
@@ -108,9 +89,6 @@ const form = reactive({
   title: '',
   department: 'internal',
   summary: '',
-  difficulty: 2,
-  patientPrompt: '',
-  examinerPrompt: '',
   referenceAnswer: '',
 })
 
@@ -123,9 +101,6 @@ watch(
     form.title = props.caseData?.title || ''
     form.department = props.caseData?.department || 'internal'
     form.summary = props.caseData?.summary || ''
-    form.difficulty = props.caseData?.difficulty || 2
-    form.patientPrompt = props.caseData?.patientPrompt || ''
-    form.examinerPrompt = props.caseData?.examinerPrompt || ''
     form.referenceAnswer = props.caseData?.referenceAnswer || ''
   },
 )

@@ -15,12 +15,6 @@
           </p>
           <h3 class="font-semibold text-slate-900">{{ caseItem.title }}</h3>
         </div>
-        <span
-          class="rounded-full px-2 py-1 text-xs"
-          :class="difficultyClass"
-        >
-          {{ difficultyLabel }}
-        </span>
       </div>
 
       <p class="mb-4 line-clamp-3 text-sm leading-6 text-slate-500">
@@ -64,20 +58,6 @@ const departmentMap: Record<string, string> = {
 }
 
 const departmentLabel = computed(() => departmentMap[props.caseItem.department] || props.caseItem.department)
-
-const difficultyLabel = computed(() => {
-  const map: Record<number, string> = { 1: '简单', 2: '中等', 3: '困难' }
-  return map[props.caseItem.difficulty] || '中等'
-})
-
-const difficultyClass = computed(() => {
-  const map: Record<number, string> = {
-    1: 'bg-emerald-50 text-emerald-700',
-    2: 'bg-amber-50 text-amber-700',
-    3: 'bg-rose-50 text-rose-700',
-  }
-  return map[props.caseItem.difficulty] || map[2]
-})
 
 async function handleStart() {
   if (!authStore.isAuthenticated) {

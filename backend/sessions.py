@@ -69,11 +69,10 @@ def _get_owned_session(session_id: int):
         """
         SELECT
             s.*,
+            c.case_no AS case_no,
             c.title AS case_title,
             c.department AS case_department,
             c.summary AS case_summary,
-            c.patient_prompt AS case_patient_prompt,
-            c.examiner_prompt AS case_examiner_prompt,
             c.reference_answer AS case_reference_answer
         FROM sessions s
         JOIN cases c ON c.case_id = s.case_id
@@ -85,9 +84,11 @@ def _get_owned_session(session_id: int):
 
 def _case_payload(row) -> dict:
     return {
+        "case_id": row["case_id"],
+        "case_no": row["case_no"],
         "title": row["case_title"],
-        "patient_prompt": row["case_patient_prompt"],
-        "examiner_prompt": row["case_examiner_prompt"],
+        "department": row["case_department"],
+        "summary": row["case_summary"],
         "reference_answer": row["case_reference_answer"],
     }
 
@@ -265,9 +266,10 @@ def _grade_and_save(session_id: int) -> None:
             """
             SELECT
                 s.*,
+                c.case_no AS case_no,
                 c.title AS case_title,
-                c.patient_prompt AS case_patient_prompt,
-                c.examiner_prompt AS case_examiner_prompt,
+                c.department AS case_department,
+                c.summary AS case_summary,
                 c.reference_answer AS case_reference_answer
             FROM sessions s
             JOIN cases c ON c.case_id = s.case_id

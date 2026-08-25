@@ -20,9 +20,6 @@ CSV_FIELDS = [
     "title",
     "department",
     "summary",
-    "difficulty",
-    "patient_prompt",
-    "examiner_prompt",
     "reference_answer",
 ]
 
@@ -31,8 +28,6 @@ def _validate_case_payload(data: dict, partial: bool = False) -> tuple[dict, str
     title = (data.get("title") or "").strip()
     department = (data.get("department") or "").strip().lower()
     summary = (data.get("summary") or "").strip()
-    patient_prompt = (data.get("patientPrompt") or data.get("patient_prompt") or "").strip()
-    examiner_prompt = (data.get("examinerPrompt") or data.get("examiner_prompt") or "").strip()
     reference_answer = (data.get("referenceAnswer") or data.get("reference_answer") or "").strip()
 
     if not partial or "title" in data:
@@ -42,18 +37,6 @@ def _validate_case_payload(data: dict, partial: bool = False) -> tuple[dict, str
         if department not in DEPARTMENTS:
             return {}, "无效的病例门类"
 
-    difficulty_raw = data.get("difficulty", 2)
-    try:
-        difficulty = int(difficulty_raw)
-    except (TypeError, ValueError):
-        return {}, "难度必须是1-3的整数"
-    if difficulty not in {1, 2, 3}:
-        return {}, "难度必须是1-3的整数"
-
-    if not patient_prompt:
-        return {}, "AI病人提示词不能为空"
-    if not examiner_prompt:
-        return {}, "AI考官提示词不能为空"
     if not reference_answer:
         return {}, "参考答案不能为空"
 
@@ -63,9 +46,6 @@ def _validate_case_payload(data: dict, partial: bool = False) -> tuple[dict, str
         "title": title,
         "department": department,
         "summary": summary,
-        "difficulty": difficulty,
-        "patient_prompt": patient_prompt,
-        "examiner_prompt": examiner_prompt,
         "reference_answer": reference_answer,
     }, None
 
@@ -133,18 +113,14 @@ def create_case():
     cursor = g.db.execute(
         """
         INSERT INTO cases (
-            case_no, title, department, summary, difficulty,
-            patient_prompt, examiner_prompt, reference_answer, is_active
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+            case_no, title, department, summary, reference_answer, is_active
+        ) VALUES (?, ?, ?, ?, ?, 1)
         """,
         (
             case_no,
             payload["title"],
             payload["department"],
             payload["summary"],
-            payload["difficulty"],
-            payload["patient_prompt"],
-            payload["examiner_prompt"],
             payload["reference_answer"],
         ),
     )
@@ -176,8 +152,8 @@ def update_case(case_id: int):
     g.db.execute(
         """
         UPDATE cases
-        SET case_no = ?, title = ?, department = ?, summary = ?, difficulty = ?,
-            patient_prompt = ?, examiner_prompt = ?, reference_answer = ?, updated_at = ?
+        SET case_no = ?, title = ?, department = ?, summary = ?,
+            reference_answer = ?, updated_at = ?
         WHERE case_id = ?
         """,
         (
@@ -185,9 +161,6 @@ def update_case(case_id: int):
             payload["title"],
             payload["department"],
             payload["summary"],
-            payload["difficulty"],
-            payload["patient_prompt"],
-            payload["examiner_prompt"],
             payload["reference_answer"],
             now_iso(),
             case_id,
@@ -246,9 +219,6 @@ def download_case_template():
             "title": "示例病例：发热伴咳嗽",
             "department": "internal",
             "summary": "男性，30岁，发热咳嗽3天。",
-            "difficulty": "2",
-            "patient_prompt": "你是一名30岁男性患者，请以患者视角回答。",
-            "examiner_prompt": "你是OSCE考官，请追问诊断依据和治疗原则。",
             "reference_answer": "诊断：社区获得性肺炎；治疗：抗感染、对症支持。",
         }
     )
@@ -301,17 +271,14 @@ def import_cases():
             g.db.execute(
                 """
                 UPDATE cases
-                SET title = ?, department = ?, summary = ?, difficulty = ?,
-                    patient_prompt = ?, examiner_prompt = ?, reference_answer = ?, updated_at = ?
+                SET title = ?, department = ?, summary = ?,
+                    reference_answer = ?, updated_at = ?
                 WHERE case_no = ?
                 """,
                 (
                     payload["title"],
                     payload["department"],
                     payload["summary"],
-                    payload["difficulty"],
-                    payload["patient_prompt"],
-                    payload["examiner_prompt"],
                     payload["reference_answer"],
                     now_iso(),
                     case_no,
@@ -322,18 +289,14 @@ def import_cases():
             g.db.execute(
                 """
                 INSERT INTO cases (
-                    case_no, title, department, summary, difficulty,
-                    patient_prompt, examiner_prompt, reference_answer, is_active
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+                    case_no, title, department, summary, reference_answer, is_active
+                ) VALUES (?, ?, ?, ?, ?, 1)
                 """,
                 (
                     case_no or _generate_case_no(),
                     payload["title"],
                     payload["department"],
                     payload["summary"],
-                    payload["difficulty"],
-                    payload["patient_prompt"],
-                    payload["examiner_prompt"],
                     payload["reference_answer"],
                 ),
             )

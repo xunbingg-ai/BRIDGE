@@ -2,61 +2,82 @@
 
 ## Current Objective
 
-- **Goal:** 从 OSCE 问诊会话中删除「8 分钟倒计时 / 时限」功能（最小改动），并由独立上下文的 evaluator 子代理完成端到端回归验证，确认只取消了倒计时、未破坏其他功能。
-- **Current status:** 已完成并提交。工作区干净（`git status` 无改动），分支 `260824-OSCE` 位于提交 `717923e`。
-- **Branch / commit:** `260824-OSCE` @ `717923e`（`feat(session): remove 8-minute countdown / time-limit feature`）
+- **Goal:** 从 OSCE 病例库中移除 `difficulty` 字段（前端不再显示每个病例的难度），并取消每个病例独立的 `patient_prompt`/`examiner_prompt`，改为统一的 standard patient/考官/评估 prompt 骨架函数（`backend/prompts.py`），以函数形式把 case 内容拼接到各阶段 system prompt（最小改动 + 深度抽象）；由独立上下文的 evaluator 子代理做端到端验证（含导入新病例流程）。
+- **Current status:** 已完成并通过独立 evaluator 端到端验证（PASS，5/5）。工作区含本次改动（见下方 Files Changed），尚未提交。
+- **Branch / commit:** `260824-OSCE` @ `6f06207`（工作区有未提交改动，含本会话 feat-011）
 
 ## Work Completed This Session
 
-- [x] 移除前端 `frontend/app/pages/session/[sessionid].vue` 倒计时能力：「剩余时间」UI、`secondsLeft`/`timeUp`/`timer` 状态、`timerText`/`timerClass`、`startTimer`/`stopTimer`、`onMounted` 计时启动、`watch(timeUp)` 到时自动提交/提示、`onBeforeUnmount(stopTimer)`；并从三个 `:disabled` 绑定剔除 `timeUp`。
-- [x] 移除后端 `backend/sessions.py` 时限逻辑：`SESSION_SECONDS`、`_deadline_expired()`、`now + timedelta(...)` deadline 计算，以及 `send_message`/`end_inquiry` 两处把状态置为 `expired` 并返回 `408 会话已超过8分钟` 的拦截。
-- [x] 更新文档：`README.md`（`/session/{sessionid}` 描述去掉倒计时）、`feature_list.json`（feat-003 描述/证据同步）、`progress.md`（本会话记录）。
+- [x] **移除 `difficulty` 字段**：
+  - `backend/schema.sql` `cases` 表删去 `difficulty` 列；`backend/seed_data.py` 12 例去掉 `difficulty`。
+  - `backend/cases.py` `case_to_dict`/`case_detail_to_dict` 去掉 `difficulty`；`backend/admin.py` 校验/CRUD/导入/CSV 模板去掉 `difficulty`。
+  - 前端 `types/index.ts`（`CaseSummary` 去 `difficulty`）、`CaseBox.vue`（去难度徽标）、`CaseManager.vue`（去「难度」列）、`CaseForm.vue`（去难度下拉）、`CsvUploader.vue`（CSV 模板去难度列）。
+  - 对既有 `backend/osce.db` 做就地列迁移（`database._migrate_cases`，幂等 `ALTER TABLE ... DROP COLUMN`），保留 13 例既有病例 + 既有会话。
+- [x] **统一 prompt 骨架（`backend/prompts.py`）**：
+  - 新增 `patient_system_prompt(case)` / `examiner_system_prompt(case)` / `assessment_system_prompt(case, transcript)`，接口极小（case -> str 或 case+transcript -> str），模板构造/插值/规则封装在内（深度抽象）。
+  - `ai_service.py`：`patient_reply`/`examiner_reply` 改用 `prompts.*`；`grade_session` 先 `_build_transcript(content)` 扁平化对话，再内联进 `assessment_system_prompt` 并发送固定 user 消息（对齐参考文档 §4.2）。
+  - `sessions.py`：`_get_owned_session`/`_grade_and_save` 查询去掉 prompt 列、补 `c.case_no`；`_case_payload` 返回 title/department/summary/reference_answer/case_id/case_no。
+  - `admin.py`、`cases.py`、`database.py`：去掉 patient/examiner prompt 相关字段写入。
+  - 前端 `CaseForm.vue` 去「AI 病人/考官提示词」输入框；`CsvUploader.vue` CSV 模板去这两列；`types/index.ts` `CaseDetail` 去 `patientPrompt`/`examinerPrompt`。
+  - 语言规则：SP 说中文、考官说英文（骨架中硬性规定），本次不做中英文切换。
 - [x] 基线验证：`bash init.sh` 通过；`cd frontend && pnpm build` 全量构建通过（exit 0）。
-- [x] **独立 evaluator 子代理端到端验证 PASS**（完整流程：注册新学生 → 选病例开始练习 → 会话页确认倒计时已移除 → AI 病人问询 → 结束问询（考官阶段）→ 提交审查 → `/report` 展示 Score/Answer；全程无「时间已到/超过8分钟」告警、无未捕获页面错误）。临时用例与测试数据已清理。
+- [x] **独立 evaluator e2e PASS（5/5）**：`cd frontend && bash e2e.sh` —— 官方病例全流程（注册学生 → 选病例 → 病人问询 → 结束问询 → 考官 → 提交 → `/report` 总分+四维+参考答案）、admin 管理（无「难度」列/字段）、导入新病例并删除、冒烟 2 项；全程无未捕获页面错误；导入用例与临时数据已清理。
 
 ## Verification Evidence
 
 | Check | Command | Result | Notes |
 |---|---|---|---|
-| 基线验证 | `bash init.sh` | ok | backend import + db init + nuxt prepare |
-| 全量构建 | `cd frontend && pnpm build` | exit 0 | 2.49 MB / 637 kB gzip |
-| e2e 冒烟 | `cd frontend && bash e2e.sh` | 2/2 passed | 病例列表 + admin 登录 |
-| e2e 会话流 | （独立 evaluator 临时用例） | 1/1 passed | 已确认倒计时移除、全流程可用、无超时告警 |
-| 后端导入 | `cd backend && .venv/bin/python -c "import app"` | ok | |
-| 工作区 | `git status --short` | 空 | 提交后无未提交变动 |
+| 基线验证 | `bash init.sh` | ok | backend import + db 迁移/init + nuxt prepare |
+| 全量构建 | `cd frontend && pnpm build` | exit 0 | 2.49 MB / 636 kB gzip |
+| 冒烟 e2e | `cd frontend && bash e2e.sh` | 2/2 passed | 病例列表 + admin 登录 |
+| 独立 evaluator e2e | `cd frontend && bash e2e.sh` | 5/5 passed | 官方病例全流程 + admin 管理 + 导入新病例并删除 + 冒烟 2 项 |
+| cases 表列 | `PRAGMA table_info(cases)` | 无 difficulty/patient_prompt/examiner_prompt | 仅 case_id/case_no/title/department/summary/reference_answer/is_active/created_at/updated_at |
+| 病例数 | `select count(*) from cases` | 13 | 12 内置 + GP-003；导入用例已删（EVAL 行 = 0） |
+| 导入清理 | `select count(*) where case_no like 'EVAL-%'` | 0 | 新导入病例已删除，病例库恢复 13 例 |
+| 工作区 | `git status --short` | 见 Files Changed | 本次改动未提交；`docs/` 为参考文档（未跟踪） |
 
 ## Files Changed
 
-- `frontend/app/pages/session/[sessionid].vue` — 移除前端倒计时 UI + 逻辑（主改动）
-- `backend/sessions.py` — 移除后端 `SESSION_SECONDS` / `_deadline_expired` / 时限拦截（主改动）
-- `README.md` — `/session/{sessionid}` 描述去掉倒计时
-- `feature_list.json` — feat-003 描述/证据更新
-- `progress.md` — 本会话记录
+- `backend/prompts.py` — **新增**：三个统一 prompt 骨架函数（深度抽象）
+- `backend/schema.sql` — `cases` 表去 `difficulty`/`patient_prompt`/`examiner_prompt` 列
+- `backend/seed_data.py` — 12 例去 `difficulty`/`patient_prompt`/`examiner_prompt`
+- `backend/database.py` — `seed_cases` 去字段 + 新增 `_migrate_cases`（就地删列迁移）
+- `backend/cases.py` — `case_to_dict`/`case_detail_to_dict` 去 `difficulty` + prompt 字段
+- `backend/ai_service.py` — `patient_reply`/`examiner_reply`/`grade_session` 改用 `prompts.*` + `_build_transcript`
+- `backend/sessions.py` — `_get_owned_session`/`_grade_and_save` 查询与 `_case_payload` 去除 prompt 列、补 `case_no`
+- `backend/admin.py` — 校验/CRUD/导入/CSV 模板去 `difficulty` + prompt 字段
+- `frontend/app/types/index.ts` — `CaseSummary`/`CaseDetail` 去 `difficulty`/`patientPrompt`/`examinerPrompt`
+- `frontend/app/components/Index/CaseBox.vue` — 去难度徽标
+- `frontend/app/components/admin/CaseManager.vue` — 去「难度」列
+- `frontend/app/components/admin/CaseForm.vue` — 去难度下拉 + AI 病人/考官提示词输入框
+- `frontend/app/components/admin/CsvUploader.vue` — CSV 模板去 `difficulty`/`patient_prompt`/`examiner_prompt`
+- `feature_list.json` — 新增 feat-011（done）；`progress.md` — 本会话记录
 
 ## Decisions Made
 
-- **保留 `deadline_at` 列（不改数据库）**：schema 中该列为 `NOT NULL`，为避免改写数据库/迁移，改为写入创建时间，且不再被任何逻辑读取。若后续要彻底清理，可在 schema 层将其移除（需同步处理现有 `osce.db`）。
-- **保留 `expired` 状态与展示逻辑**：`status` 枚举、`types` 联合类型、HistoryBox/`statusToPhase` 仍处理 `expired`，用于兼容历史已过期会话；因时限已移除，新会话不会再进入 `expired`。
-- **倒计时移除属于 feat-003 行为调整**：未新增独立 feature 条目，仅在 `feature_list.json` 的 feat-003 描述/证据中注明。
+- **病例表只保留内容字段**：`difficulty`、`patient_prompt`、`examiner_prompt` 三列已从 schema 与存量 osce.db 删除；prompt 由 `backend/prompts.py` 从 `title/department/summary/reference_answer` 运行时组装。
+- **`osce.db` 就地迁移而非重建**：`_migrate_cases` 用 `ALTER TABLE ... DROP COLUMN`（SQLite 3.51 支持），幂等，保留 13 例与既有会话，随 `init_db()` 自动执行。
+- **评估评分体系不变**：仍为 100 分四维（病史采集 30 / 沟通 25 / 临床推理 25 / 职业素养 20），仅把评分指令收敛进 `assessment_system_prompt`，前端 ScoreBox/AnswerBox 无需改动。
+- **语言规则硬编码**：SP 说中文、考官说英文（骨架内规定，本次不做双语切换）。
+- **不做前身 repo 的高级特性**：viva 分节 tag（`[PART: ...]`）与 PE/检查结果解密卡片、`sp_script` 等本仓库当前没有的能力，未引入，保持最小改动。
 
 ## Blockers / Risks
 
-- 无阻塞项；倒计时移除已完成并通过验证。
+- 无阻塞项；本会话改动已通过独立 evaluator e2e（5/5）。
 - `JWT_SECRET` 仍为默认 `dev-secret-*`，生产需更换。
 - CORS `origins: *`，上线前需收紧。
-- DeepSeek key 靠环境变量注入、未落盘；重启后端需重新注入（未配置时降级为内置 Mock，e2e 走 Mock 稳定）。
+- DeepSeek key 靠环境变量注入、未落盘；未配置时降级为内置 Mock（e2e 走 Mock 稳定；真实 LLM prompt 组装冒烟未在 e2e 覆盖，本次仅以函数实测为准）。
+- `docs/prompt-architecture_from_previous.md` 为参考文档，未跟踪（`docs/` 未入库），勿提交。
 
 ## Next Session Startup
 
 1. `pwd` 确认工作目录为仓库根 `/mnt/d/BRIDGE`。
 2. Read `AGENTS.md`（启动流程、工作规则、完成定义、端到端验证门禁）。
-3. Read `feature_list.json`（功能状态事实来源）。
-4. Read `progress.md`（当前状态/日志）与本文档。
-5. 运行 `bash init.sh` 验证基线（后端 import/db + 前端 nuxt prepare）。
-6. 从 `feature_list.json` 选**一个**未完成项开始（当前全部 done，见下方建议）。
+3. Read `feature_list.json`（功能状态事实来源）与 `progress.md`（本会话日志）。
+4. 运行 `bash init.sh` 验证基线（后端 import/db 迁移 + 前端 nuxt prepare）。
+5. 若要把本次改动提交：`git add` 涉及文件（不含 `docs/`）后 `git commit`，并推送到 `origin/260824-OSCE`（当前分支未配置 upstream，用 `git push -u origin 260824-OSCE`）。
 
 ## Recommended Next Step
 
-- 当前 `feature_list.json` 10 项全为 done，暂无未完成 feature。建议下一步做**生产化加固**（变更默认 `JWT_SECRET`、收紧 CORS、正式化 DeepSeek 配置——环境变量或经 `/admin` 后台持久化），或**扩充 e2e 用例**（注册/登录、会话流、个人中心等长流程，固化进 `frontend/e2e/`，供后续 evaluator 门禁复用）。
-- 任一改动交接前，按 AGENTS.md 门禁用独立 evaluator 子代理跑 `cd frontend && bash e2e.sh` 并全部通过。
-- 若需 push 到远端 `origin/260824-OSCE`：当前本地分支未配置 upstream，用 `git push -u origin 260824-OSCE`。
+- 提交本次 feat-011 改动（字段精简 + 统一 prompt 骨架），按 AGENTS.md 门禁已由独立 evaluator e2e PASS。
+- 后续可做生产化加固（更换默认 `JWT_SECRET`、收紧 CORS、正式化 DeepSeek 配置）或扩充永久 e2e 用例（注册/登录、会话流、导入删除等长流程，固化进 `frontend/e2e/` 供后续门禁复用）。
