@@ -35,6 +35,11 @@
         </div>
 
         <label class="block text-sm">
+          <span class="mb-1 block text-slate-600">卡片开场信息（年龄 + 性别 + 一个核心症状，不带时间/过度描述）</span>
+          <textarea v-model="form.brief" rows="2" class="w-full resize-y rounded-lg border border-slate-200 px-3 py-2.5 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" placeholder="如：32岁，女性，妊娠35周，头痛" />
+        </label>
+
+        <label class="block text-sm">
           <span class="mb-1 block text-slate-600">病人剧本（完整病历，仅供 AI 病人角色扮演）</span>
           <textarea v-model="form.patientScenario" rows="6" class="w-full resize-y rounded-lg border border-slate-200 px-3 py-2.5 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" />
         </label>
@@ -88,6 +93,7 @@ const form = reactive({
   caseNo: '',
   title: '',
   department: 'internal',
+  brief: '',
   patientScenario: '',
   referenceAnswer: '',
 })
@@ -100,6 +106,7 @@ watch(
     form.caseNo = props.caseData?.caseNo || ''
     form.title = props.caseData?.title || ''
     form.department = props.caseData?.department || 'internal'
+    form.brief = props.caseData?.brief || ''
     form.patientScenario = props.caseData?.patientScenario || ''
     form.referenceAnswer = props.caseData?.referenceAnswer || ''
   },

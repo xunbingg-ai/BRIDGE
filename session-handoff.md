@@ -17,7 +17,8 @@
 - **当前未改任何与问题二相关的代码。**
 
 ### 小提醒
-- 卡片 `brief` 目前由 `backend/case_utils.py` 的 `CARD_BRIEFS`（按 case_no 的精心裁剪文案）提供，未入库为字段；管理员编辑病人剧本不会自动更新该 brief。若需管理员可编辑，可考虑把 brief 做成 `cases` 表字段（+ 迁移 + admin 表单 + CSV）。
+- 卡片 `brief` 已是 `cases` 表字段（schema + 迁移回填 + seed_data + admin 表单/CSV 均可编辑、可查询）。默认值来源于 `backend/case_utils.py` 的 `CARD_BRIEFS`（仅作 seed/backfill 兜底）；管理员可覆盖。未提供 brief 的病例在读取时回退到派生（`_short_complaint`）。
+- 新增 e2e：`frontend/e2e/admin-case.spec.ts` 覆盖后台界面新增/编辑病例、CSV 批量导入、并核验落库 + 清理。运行 `cd frontend && bash e2e.sh` 会一并执行。
 
 ## REGRESSION — 内容泄漏（**已修复**，本阶段收尾）
 

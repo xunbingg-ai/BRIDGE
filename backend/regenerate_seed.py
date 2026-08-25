@@ -30,6 +30,12 @@ CASES_ORDER = [
 EXPECTED = set(CASES_ORDER)
 
 
+def _brief_for(case_no: str) -> str:
+    from case_utils import CARD_BRIEFS
+
+    return CARD_BRIEFS.get(case_no, "")
+
+
 def main() -> None:
     dry = "--dry-run" in sys.argv
     with open(COMPILED, "r", encoding="utf-8") as f:
@@ -50,7 +56,7 @@ def main() -> None:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     gp = conn.execute(
-        "SELECT case_no, title, department, patient_scenario, reference_answer "
+        "SELECT case_no, title, department, brief, patient_scenario, reference_answer "
         "FROM cases WHERE case_no='GP-003'"
     ).fetchone()
     conn.close()
@@ -61,6 +67,7 @@ def main() -> None:
         "case_no": gp["case_no"],
         "title": gp["title"],
         "department": gp["department"],
+        "brief": gp["brief"] or _brief_for("GP-003"),
         "patient_scenario": gp["patient_scenario"],
         "reference_answer": gp["reference_answer"],
     }
@@ -73,6 +80,7 @@ def main() -> None:
             "case_no": m["case_no"],
             "title": m["title"],
             "department": m["department"],
+            "brief": _brief_for(case_no),
             "patient_scenario": compiled[case_no]["patient_scenario"],
             "reference_answer": compiled[case_no]["reference_answer"],
         })
@@ -80,7 +88,7 @@ def main() -> None:
 
     if dry:
         for c in ordered:
-            print(f"{c['case_no']:<8} patient_scenario={len(c['patient_scenario']):>5} ref={len(c['reference_answer']):>5}")
+            print(f"{c['case_no']:<8} brief={c['brief']:<22} patient_scenario={len(c['patient_scenario']):>5} ref={len(c['reference_answer']):>5}")
         print("dry-run，未写 seed_data.py")
         return
 
@@ -91,6 +99,7 @@ def main() -> None:
         lines.append(f"        \"case_no\": {json.dumps(c['case_no'], ensure_ascii=False)},")
         lines.append(f"        \"title\": {json.dumps(c['title'], ensure_ascii=False)},")
         lines.append(f"        \"department\": {json.dumps(c['department'], ensure_ascii=False)},")
+        lines.append(f"        \"brief\": {json.dumps(c['brief'], ensure_ascii=False)},")
         lines.append(f"        \"patient_scenario\": {json.dumps(c['patient_scenario'], ensure_ascii=False)},")
         lines.append(f"        \"reference_answer\": {json.dumps(c['reference_answer'], ensure_ascii=False)},")
         lines.append("    },")

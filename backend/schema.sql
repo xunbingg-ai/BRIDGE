@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS cases (
     case_no TEXT NOT NULL UNIQUE,
     title TEXT NOT NULL,
     department TEXT NOT NULL CHECK (department IN ('internal', 'surgery', 'obgyn', 'pediatrics', 'general', 'psychiatry')),
+    brief TEXT,
     patient_scenario TEXT,
     reference_answer TEXT NOT NULL,
     is_active INTEGER NOT NULL DEFAULT 1,

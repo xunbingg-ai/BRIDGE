@@ -19,6 +19,7 @@ CSV_FIELDS = [
     "case_no",
     "title",
     "department",
+    "brief",
     "patient_scenario",
     "reference_answer",
 ]
@@ -27,6 +28,7 @@ CSV_FIELDS = [
 def _validate_case_payload(data: dict, partial: bool = False) -> tuple[dict, str | None]:
     title = (data.get("title") or "").strip()
     department = (data.get("department") or "").strip().lower()
+    brief = (data.get("brief") or "").strip()
     patient_scenario = (
         (data.get("patientScenario") or data.get("patient_scenario") or "").strip()
     )
@@ -47,6 +49,7 @@ def _validate_case_payload(data: dict, partial: bool = False) -> tuple[dict, str
         "case_no": case_no,
         "title": title,
         "department": department,
+        "brief": brief,
         "patient_scenario": patient_scenario,
         "reference_answer": reference_answer,
     }, None
@@ -115,13 +118,14 @@ def create_case():
     cursor = g.db.execute(
         """
         INSERT INTO cases (
-            case_no, title, department, patient_scenario, reference_answer, is_active
-        ) VALUES (?, ?, ?, ?, ?, 1)
+            case_no, title, department, brief, patient_scenario, reference_answer, is_active
+        ) VALUES (?, ?, ?, ?, ?, ?, 1)
         """,
         (
             case_no,
             payload["title"],
             payload["department"],
+            payload["brief"],
             payload["patient_scenario"],
             payload["reference_answer"],
         ),
@@ -154,7 +158,7 @@ def update_case(case_id: int):
     g.db.execute(
         """
         UPDATE cases
-        SET case_no = ?, title = ?, department = ?, patient_scenario = ?,
+        SET case_no = ?, title = ?, department = ?, brief = ?, patient_scenario = ?,
             reference_answer = ?, updated_at = ?
         WHERE case_id = ?
         """,
@@ -162,6 +166,7 @@ def update_case(case_id: int):
             case_no,
             payload["title"],
             payload["department"],
+            payload["brief"],
             payload["patient_scenario"],
             payload["reference_answer"],
             now_iso(),
@@ -220,6 +225,7 @@ def download_case_template():
             "case_no": "",
             "title": "示例病例：发热伴咳嗽",
             "department": "internal",
+            "brief": "30岁，男性，发热咳嗽",
             "patient_scenario": "### 一般情况\n张先生（化名），男，30岁，上班族，汉族。\n### 主诉\n发热、咳嗽3天。",
             "reference_answer": "诊断：社区获得性肺炎；治疗：抗感染、对症支持。",
         }
@@ -273,13 +279,14 @@ def import_cases():
             g.db.execute(
                 """
                 UPDATE cases
-                SET title = ?, department = ?, patient_scenario = ?,
+                SET title = ?, department = ?, brief = ?, patient_scenario = ?,
                     reference_answer = ?, updated_at = ?
                 WHERE case_no = ?
                 """,
                 (
                     payload["title"],
                     payload["department"],
+                    payload["brief"],
                     payload["patient_scenario"],
                     payload["reference_answer"],
                     now_iso(),
@@ -291,13 +298,14 @@ def import_cases():
             g.db.execute(
                 """
                 INSERT INTO cases (
-                    case_no, title, department, patient_scenario, reference_answer, is_active
-                ) VALUES (?, ?, ?, ?, ?, 1)
+                    case_no, title, department, brief, patient_scenario, reference_answer, is_active
+                ) VALUES (?, ?, ?, ?, ?, ?, 1)
                 """,
                 (
                     case_no or _generate_case_no(),
                     payload["title"],
                     payload["department"],
+                    payload["brief"],
                     payload["patient_scenario"],
                     payload["reference_answer"],
                 ),

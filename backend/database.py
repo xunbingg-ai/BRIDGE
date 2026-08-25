@@ -6,6 +6,7 @@ from datetime import datetime
 
 from werkzeug.security import generate_password_hash
 
+from case_utils import CARD_BRIEFS, derive_patient_brief
 from seed_data import CASES
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -55,6 +56,24 @@ def _migrate_cases(conn: sqlite3.Connection) -> None:
             conn.execute(f"ALTER TABLE cases DROP COLUMN {legacy}")
     if "summary" in columns and "patient_scenario" not in columns:
         conn.execute("ALTER TABLE cases RENAME COLUMN summary TO patient_scenario")
+    # 新增 brief 列（卡片 OSCE 开场信息，可从后台编辑）。已存在的病例用 CARD_BRIEFS / 派生回填。
+    if "brief" not in columns:
+        conn.execute("ALTER TABLE cases ADD COLUMN brief TEXT")
+        cols = [r["name"] for r in conn.execute("PRAGMA table_info(cases)").fetchall()]
+        _backfill_brief(conn, cols)
+
+
+def _backfill_brief(conn: sqlite3.Connection, columns: list[str]) -> None:
+    """为 brief 为空的内置病例回填精简开场信息（CARD_BRIEFS 优先，否则派生）。"""
+    if "brief" not in columns or "patient_scenario" not in columns:
+        return
+    rows = conn.execute(
+        "SELECT case_id, case_no, patient_scenario FROM cases WHERE brief IS NULL OR TRIM(brief) = ''"
+    ).fetchall()
+    for r in rows:
+        brief = CARD_BRIEFS.get(r["case_no"]) or derive_patient_brief(r["patient_scenario"] or "", r["case_no"])
+        if brief:
+            conn.execute("UPDATE cases SET brief = ? WHERE case_id = ?", (brief, r["case_id"]))
 
 
 def seed_admin(conn: sqlite3.Connection) -> None:
@@ -77,16 +96,20 @@ def seed_admin(conn: sqlite3.Connection) -> None:
 
 def seed_cases(conn: sqlite3.Connection) -> None:
     for case in CASES:
+        brief = case.get("brief") or CARD_BRIEFS.get(case["case_no"]) or derive_patient_brief(
+            case["patient_scenario"] or "", case["case_no"]
+        )
         conn.execute(
             """
             INSERT INTO cases (
-                case_no, title, department, patient_scenario, reference_answer, is_active
-            ) VALUES (?, ?, ?, ?, ?, 1)
+                case_no, title, department, brief, patient_scenario, reference_answer, is_active
+            ) VALUES (?, ?, ?, ?, ?, ?, 1)
             """,
             (
                 case["case_no"],
                 case["title"],
                 case["department"],
+                brief,
                 case["patient_scenario"],
                 case["reference_answer"],
             ),
