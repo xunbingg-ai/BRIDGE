@@ -3,8 +3,21 @@
 ## Current Objective
 
 - **Status（feat-012 已收尾）：** 上阶段按 `Example teaching case(2).md` 完善 12 例教学病例并引入「内容泄漏」回归；**本阶段已按用户更贴近真实 OSCE 的方案修复完毕**（见下方「REGRESSION — 内容泄漏（已修复）」）。
-- **修复结果：** `summary` 改为 `patient_scenario`（内容不变，DB 就地迁移）；卡片只显示派生的 OSCE 开场信息（年龄+性别+一个核心症状）；对话由学生先开口（取消 SP 开场自动气泡）；病人/考官 prompt 与卡片 API 均不泄露完整病历与答案。
-- **Branch / commit:** `260824-OSCE` @ `78f153d`（工作区含本次修复 + 内容改动，尚未提交）。
+- **修复结果：** `summary` 改为 `patient_scenario`（内容不变，DB 就地迁移）；卡片只显示派生的 OSCE 开场信息（年龄+性别+一个核心症状）；对话由学生先开口（取消 SP 开场自动气泡）；病人/考官 prompt 与卡片 API 均不泄露完整病历与答案；并用 `backend/.env` 真正接上 DeepSeek（此前 `.env` 未被加载、`ai_service` 读的是 `OPENAI_*` 导致一直走 Mock）。
+- **Branch / commit:** `260824-OSCE`，本地已提交 `2b74794`（summary→patient_scenario）、`fbbe2ee`（卡片去诊断标题 + 接真模型）、`077dd95`（/api/health 加 llm 模式）。均**未 push**（用户要求）。
+
+## Known Issues / TODO（下一 agent）
+
+### 问题二（用户反馈，本次只记录不解决）
+- **现象：** 每个 case 的**体格检查客观结果**与**辅助检查结果**没有在「结构化问答/报告」的可视区域显示出来。
+- **判断（供排查）：** 参考前身 repo 有「PE/检查结果解密卡片」「viva 分节 tag（[PART: …]）」等能力，本仓库未实现。需核实：
+  1. `reference_answer` 的「结构化问答」小节是否遗漏了本病例的具体查体/辅助检查结果（内容问题），还是仅存在于独立的「体格检查/辅助检查」小节；
+  2. 报告页 `report/[sessionid].vue` 的 `AnswerBox`（`frontend/app/components/Report/AnswerBox.vue`）渲染 `referenceAnswer` 时，markdown 表格/`###` 分节是否被正确渲染（DOMPurify 是否拦截表格）；
+  3. 若目标是在**问诊结束后**把查体/辅助检查结果作为「解密卡片」呈现给学生/考官，需要新增数据结构与前端展示（参考前身 repo）。
+- **当前未改任何与问题二相关的代码。**
+
+### 小提醒
+- 卡片 `brief` 目前由 `backend/case_utils.py` 的 `CARD_BRIEFS`（按 case_no 的精心裁剪文案）提供，未入库为字段；管理员编辑病人剧本不会自动更新该 brief。若需管理员可编辑，可考虑把 brief 做成 `cases` 表字段（+ 迁移 + admin 表单 + CSV）。
 
 ## REGRESSION — 内容泄漏（**已修复**，本阶段收尾）
 

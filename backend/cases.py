@@ -20,7 +20,7 @@ def case_to_dict(case) -> dict:
         "caseNo": case["case_no"],
         "title": case["title"],
         "department": case["department"],
-        "brief": derive_patient_brief(case["patient_scenario"] or ""),
+        "brief": derive_patient_brief(case["patient_scenario"] or "", case["case_no"]),
         "createdAt": case["created_at"],
         "updatedAt": case["updated_at"],
     }

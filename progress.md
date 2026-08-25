@@ -35,6 +35,11 @@
 - **运行时确认**：`/api/health` 新增 `llm` 字段（`mode: real|mock`、`model`、`base_url`、`reason`），启动后 `curl http://127.0.0.1:5000/api/health` 即可确认是否联通真实大模型（如 `{"llm":{"mode":"real","model":"deepseek-v4-flash",...}}`）。
 - 实测：真实 DeepSeek（`deepseek-v4-flash`）下，SP 能按问题给出自然的患者口吻回答（主诉/疼痛性质/加重缓解因素各不相同），**不主动泄露诊断**；考官按规则说英文；判卷出分/报告正常。e2e 门禁后端以 `LLM_MOCK=1` 启动（确定性）；`content-leak.spec.ts` 回复长度断言放宽到 <1000 以兼容真实回复。
 
+**③ 卡片 brief 信息量过大 → 改成「年龄+性别+一个核心症状」**
+- 用户指出原 brief（如「妊娠35周，头痛、视物模糊伴双下肢水肿2天」）信息量太大，医学生一眼即知是子痫前期，失去练习价值；正确应为「32岁，女性，妊娠35周，头痛」。
+- 实现：`backend/case_utils.py` 新增 `CARD_BRIEFS` 逐病例裁剪的开场信息（年龄+性别+一个核心症状，不带时间/过度描述），`derive_patient_brief(patient_scenario, case_no)` 命中即返回；未收录病例回退到 `_short_complaint`（去时间、去过细描述）派生。`/api/cases` 现返回如 `32岁，男性，发热咳嗽`、`32岁，女性，妊娠35周，头痛` 等短开场信息。
+- **未解决（已写入交接文档，下一 agent 处理）：** 每个 case 的**查体客观结果与辅助检查结果**没有在「结构化问答/报告」可视区域显示（详见 `session-handoff.md` 的 Known Issues / TODO）。
+
 ### 参考：旧 REGRESSION 记录（已解决）
 
 **现象（用户报告，已复现）：**

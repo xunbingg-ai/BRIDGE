@@ -65,18 +65,52 @@ def _gender_label(gender: str) -> str:
     return ""
 
 
-def derive_patient_brief(patient_scenario: str) -> str:
+# 每个内置病例在卡片上显示的「OSCE 开场信息」：`年龄 + 性别 + 一个核心症状`。
+# 只保留最能练问题的主诉，**不带时间、不带过度精准的描述**（否则医学生一眼即知诊断，
+# 失去练习价值）。卡片展示用；未收录的病例（如 CSV 导入）回退到派生结果。
+CARD_BRIEFS: dict[str, str] = {
+    "IM-001": "32岁，男性，发热咳嗽",
+    "IM-002": "48岁，女性，多饮多尿",
+    "SG-001": "24岁，男性，腹痛",
+    "SG-002": "45岁，女性，右上腹痛",
+    "OG-001": "28岁，女性，停经，腹痛",
+    "OG-002": "32岁，女性，妊娠35周，头痛",
+    "PD-001": "2岁，男性，腹泻",
+    "PD-002": "8岁，男性，咳嗽喘息",
+    "GP-001": "55岁，男性，血压升高",
+    "GP-002": "40岁，女性，烧心反酸",
+    "PS-001": "29岁，女性，情绪低落",
+    "PS-002": "26岁，男性，心悸",
+    "GP-003": "32岁，女性，胸痛",
+}
+
+
+def _short_complaint(complaint: str) -> str:
+    """从主诉中取出一个简短的核心症状短语（去时间、去过度描述）。"""
+    text = (complaint or "").strip()
+    # 去末尾时间/持续时长（如「3天」「2月余」「6小时」）
+    text = re.sub(r"[，,、\s]*[约近]?\d+\s*(?:天|小时|周|月|年)[余左右]*[。]*$", "", text).strip()
+    # 取第一个核心症状短语（到第一个「、」「伴」「，」或句末为止）
+    text = re.split(r"[、伴，。]", text, maxsplit=1)[0].strip().rstrip("，,。")
+    return text
+
+
+def derive_patient_brief(patient_scenario: str, case_no: str | None = None) -> str:
     """派生考生的开场信息：`年龄 + 性别 + 核心症状`。
 
-    只取这三样，不包含任何病史细节 / 诊断 / 查体 / 检查结果。派生失败时返回空串。
+    - ``case_no`` 命中 ``CARD_BRIEFS`` 时直接返回精心裁剪的开场信息（推荐）。
+    - 否则从 ``patient_scenario`` 派生（去时间、去过度描述），作为兜底。
+    不包含任何病史细节 / 诊断 / 查体 / 检查结果。派生失败时返回空串。
     """
+    if case_no and case_no in CARD_BRIEFS:
+        return CARD_BRIEFS[case_no]
+
     scenario = (patient_scenario or "").strip()
     if not scenario:
         return ""
 
     info = parse_patient_scenario(scenario)
     if info["complaint"]:
-        # 结构化病人剧本：从 一般情况/主诉 提取
         head: list[str] = []
         if info["age"]:
             head.append(f"{info['age']}岁")
@@ -84,9 +118,10 @@ def derive_patient_brief(patient_scenario: str) -> str:
         if label:
             head.append(label)
         head_str = "，".join(head)
-        return f"{head_str}，{info['complaint']}" if head_str else info["complaint"]
+        symptom = _short_complaint(info["complaint"])
+        return f"{head_str}，{symptom}" if head_str else symptom
 
-    # 自由文本（无 一般情况/主诉 小节，如 GP-003）：取年龄+性别+主诉短语
+    # 自由文本（无 一般情况/主诉 小节，如 GP-003 已由 CARD_BRIEFS 覆盖）：取年龄+性别+主诉短语
     age_m = re.search(r"(\d{1,3})\s*岁", scenario)
     gender_m = re.search(r"([男女])", scenario)
     head = []
@@ -97,7 +132,6 @@ def derive_patient_brief(patient_scenario: str) -> str:
         head.append(label)
     head_str = "，".join(head)
 
-    # 主诉短语：紧跟「N岁」之后的第一个短句（到下一个逗号/句号为止）
     symptom = ""
     if age_m:
         rest = scenario[age_m.end():].lstrip("，,。 ")
