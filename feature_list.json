@@ -71,6 +71,14 @@
       "dependencies": ["feat-008"],
       "status": "done",
       "evidence": "backend/.venv 与 frontend/node_modules 均为本地隔离；git check-ignore 覆盖全部依赖/缓存目录；无任何依赖产物被 git 跟踪；bash init.sh 与 pnpm build 通过"
+    },
+    {
+      "id": "feat-010",
+      "name": "Playwright 端到端验证门禁",
+      "description": "引入 Playwright 端到端验证：本地安装 @playwright/test（frontend devDependency）+ Chromium；创建 playwright.config.ts（自动拉起前后端）与 smoke.spec.ts（病例列表渲染 + admin 登录）；提交门禁——任何改动/交接前必须由独立上下文的 EVALUATOR 子代理运行 cd frontend && bash e2e.sh 并全部通过（已写入 AGENTS.md）",
+      "dependencies": ["feat-009"],
+      "status": "done",
+      "evidence": "@playwright/test@1.62.1 已安装（frontend/node_modules，pnpm-lock 更新）；Chromium 装于 ~/.cache/ms-playwright（channel: chromium，跨会话可用）；bash e2e.sh 冒烟 2/2 通过（首页病例列表 + admin 登录）；e2e 脚本绕过环境代理对 localhost 的干扰；AGENTS.md 已加入「端到端验证门禁」"
     }
   ]
 }

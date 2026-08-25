@@ -28,12 +28,23 @@ OSCE 学生端训练平台：面向医学生的 OSCE 问诊训练网站。前端
 - `init.sh` — 标准启动与验证路径
 - `session-handoff.md` — 会话交接文档（较大改动/多会话时）
 
+## 端到端验证门禁（Evaluator Gate）
+
+**任何功能/改动在交接（标记 done / 合并 / 提交）前，必须通过独立上下文的 EVALUATOR 子代理做端到端验证。**
+
+- **谁验证**：一个**独立的、全新上下文的 evaluator 子代理**（不与开发者/开发子代理共享上下文），只做验证、不做实现。
+- **怎么验证**：运行 Playwright 端到端测试，覆盖本次改动的**完整用户流程**（页面渲染、登录、关键交互、API 链路、导航），确认全流程干净、无 bug。
+- **怎么跑**：`cd frontend && bash e2e.sh`（等价 `pnpm e2e`）。e2e 由 `frontend/playwright.config.ts` 自动拉起后端(:5000)与前端(:3000)（已运行则复用）。
+- **门禁**：**任何用例失败即视为未完成，不得交接**。开发者不得用自己的实现结果替代 evaluator 的验证。
+- **环境依赖**：`@playwright/test` 已是前端 devDependency；Chromium 已装于 `~/.cache/ms-playwright`（跨会话可用）。测试用全量 Chromium（`channel: 'chromium'`）。e2e 脚本已绕过环境代理对 localhost 的干扰。
+
 ## 完成定义（DoD）
 
 一个 feature 只有在**全部**满足时才视为完成：
 
 - [ ] 目标行为已实现
 - [ ] 必需验证已实际运行（构建 / 类型检查 / 接口测试）
+- [ ] **独立 evaluator 子代理已运行 `cd frontend && bash e2e.sh` 且全部通过**（见「端到端验证门禁」）
 - [ ] 证据已记录在 `feature_list.json` 或 `progress.md`
 - [ ] 仓库仍可从标准启动路径重启（`bash init.sh` 通过）
 
@@ -58,6 +69,7 @@ bash init.sh
 - 后端：`cd backend && ./.venv/bin/python -c "import app"`（依赖/入口可 import）
 - 数据库：`backend/osce.db` 存在且含 12 个内置病例 + 新增病例
 - 前端：`cd frontend && pnpm install && pnpm build`（Nuxt 构建通过）
+- 端到端：`cd frontend && bash e2e.sh`（Playwright：自动拉起前后端并跑冒烟/回归用例，见「端到端验证门禁」）
 
 ## 升级（Escalation）
 

@@ -68,6 +68,19 @@ else
   echo "[frontend]   → cd frontend && pnpm build   (definitive verification / publish gate)"
 fi
 
+# ---------- Playwright e2e readiness (non-fatal; the evaluator gate runs e2e.sh) ----------
+if [ -x "$REPO_ROOT/frontend/node_modules/.bin/playwright" ]; then
+  echo "[frontend] Playwright CLI present (@playwright/test installed)."
+  if ls "$HOME/.cache/ms-playwright"/chromium-*/INSTALLATION_COMPLETE >/dev/null 2>&1; then
+    echo "[frontend]   chromium browser installed (channel: chromium)."
+  else
+    echo "[frontend]   WARN: chromium browser missing; run: cd frontend && node_modules/.bin/playwright install chromium"
+  fi
+  echo "[frontend]   e2e: cd frontend && bash e2e.sh   (see AGENTS.md '端到端验证门禁')"
+else
+  echo "[frontend] WARN: @playwright/test not installed; e2e unavailable (cd frontend && pnpm add -D @playwright/test)"
+fi
+
 echo ""
 echo "=== Verification Complete ==="
 echo ""

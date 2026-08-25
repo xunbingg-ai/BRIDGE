@@ -3,8 +3,8 @@
 ## Current State
 
 **Last Updated:** 2026-08-25 (session)
-**Session ID:** dsh-session (依赖本地化 + gitignore 硬化)
-**Active Feature:** feat-009 — 依赖本地化与 gitignore 硬化
+**Session ID:** dsh-session (Playwright 端到端验证门禁)
+**Active Feature:** feat-010 — Playwright 端到端验证门禁
 
 ## Status
 
@@ -32,15 +32,26 @@
 - [x] `bash init.sh` 通过（后端 deps/import/db + 前端 nuxt prepare）
 - [x] `cd frontend && pnpm build` 全量生产构建通过（2.49 MB / 637 kB gzip）
 
+### This Session (feat-010) — Playwright 端到端验证门禁
+
+- [x] 本地安装 `@playwright/test@1.62.1`（frontend devDependency，落在 frontend/node_modules）
+- [x] 安装 Chromium 浏览器于 `~/.cache/ms-playwright`（完整版，`channel: 'chromium'`；headless-shell 未装，用全量 Chromium 跑无头可正常工作）
+- [x] 新增 `frontend/playwright.config.ts`（自动拉起后端:5000 + 前端:3000，已运行则复用；直接调 bin 避开 pnpm 只读 store）
+- [x] 新增 `frontend/e2e/smoke.spec.ts`（病例列表渲染 + admin 登录，覆盖完整流程）
+- [x] 新增 `frontend/e2e.sh` 包装脚本（绕过环境 HTTP 代理对 localhost 干扰；直接 exec playwright，免 pnpm store）
+- [x] 新增 `frontend/package.json` e2e script = `bash e2e.sh`；`.gitignore` 加 Playwright 产物（test-results/ playwright-report/ blob-report/ *.last-run.json）
+- [x] `bash e2e.sh` 冒烟通过 2/2（首页病例列表 + admin 登录 OPTIONS/POST 200）
+- [x] AGENTS.md 加入「端到端验证门禁（Evaluator Gate）」：任何改动/交接前必须由独立上下文的 evaluator 子代理运行 `cd frontend && bash e2e.sh` 并全部通过；并把该门禁纳入 DoD
+
 ### What's In Progress
 
 - 无（当前会话工作已完成）
 
 ### What's Next
 
-1.（可选）新增教学病例：从 `feature_list.json` 选下一个未完成项
-2. 生产化加固：更换默认 `JWT_SECRET`、收紧 CORS `origins:*`、把 DeepSeek 配置正式化（环境变量持久化或后台 LLM 配置）
-3. 确认后端(:5000)/前端(:3000) 服务正常，网站 http://localhost:3000 可访问
+1. 后续任一 feature 交接前，按 AGENTS.md 门禁用独立 evaluator 子代理跑 `cd frontend && bash e2e.sh`
+2.（可选）扩充 e2e 用例：新增病例/会话流、注册、个人中心等长流程
+3. 生产化加固：更换默认 `JWT_SECRET`、收紧 CORS `origins:*`、把 DeepSeek 配置正式化
 
 ## Blockers / Risks
 
@@ -62,10 +73,14 @@
 
 ## Files Modified This Session
 
-- `.gitignore` — 加入 `.agents/`（OSCE 分支 `3404449`）
-- `backend/osce.db` — 病例库（13 例，含 GP-003）
-- `AGENTS.md`, `feature_list.json`, `progress.md`, `session-handoff.md`, `init.sh` — harness-creator 五件套（新建）
-- (feat 分支 `5b71a80`、master `f5c0385` 各含前述提交)
+- (上一会话 feat-009)`.gitignore`、`feature_list.json`、`progress.md`
+- (本会话 feat-010)
+  - `frontend/package.json` — 加 `@playwright/test` devDependency + `e2e` script
+  - `frontend/pnpm-lock.yaml` — lockfile 更新（@playwright/test）
+  - `frontend/playwright.config.ts`、`frontend/e2e/smoke.spec.ts`、`frontend/e2e.sh` — 新增
+  - `.gitignore` — 加 Playwright 产物忽略
+  - `AGENTS.md` — 加「端到端验证门禁（Evaluator Gate）」并纳入 DoD
+  - `feature_list.json`、`progress.md` — 状态更新
 
 ## Evidence of Completion
 
