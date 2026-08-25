@@ -2,7 +2,7 @@
 
 OSCE 学生端训练平台：面向医学生的 OSCE 问诊训练网站。前端 Nuxt 4 + Pinia + Tailwind CSS（`frontend/`），后端 Flask + SQLite + JWT + OpenAI 兼容大模型（`backend/`）。AI 病人/考官/判卷走 DeepSeek V4 Flash（环境变量注入，未配置时自动降级为内置 Mock）。
 
-## 启动流程（写代码前）
+## 启动流程 / Startup Workflow（Before writing code）
 
 1. **确认工作目录**：`pwd`（应为仓库根 `/mnt/d/BRIDGE`）
 2. **完整阅读本文件**
@@ -15,10 +15,10 @@ OSCE 学生端训练平台：面向医学生的 OSCE 问诊训练网站。前端
 
 ## 工作规则
 
-- **一次只做一个 feature**：从 `feature_list.json` 里选一个未完成项
+- **一次只做一个 feature（One feature at a time）**：从 `feature_list.json` 里选一个未完成项
 - **必须验证**：未跑验证命令不得宣称完成
 - **更新工件**：结束会话前更新 `progress.md` 和 `feature_list.json`
-- **控制范围**：不要改动与当前 feature 无关的文件
+- **控制范围 / Stay in scope**：不要改动与当前 feature 无关的文件
 - **保持干净**：下一会话必须能直接 `bash init.sh` 跑通
 
 ## 必需工件
@@ -38,7 +38,7 @@ OSCE 学生端训练平台：面向医学生的 OSCE 问诊训练网站。前端
 - **门禁**：**任何用例失败即视为未完成，不得交接**。开发者不得用自己的实现结果替代 evaluator 的验证。
 - **环境依赖**：`@playwright/test` 已是前端 devDependency；Chromium 已装于 `~/.cache/ms-playwright`（跨会话可用）。测试用全量 Chromium（`channel: 'chromium'`）。e2e 脚本已绕过环境代理对 localhost 的干扰。
 
-## 完成定义（DoD）
+## 完成定义 / Definition of Done（DoD）
 
 一个 feature 只有在**全部**满足时才视为完成：
 
@@ -48,7 +48,7 @@ OSCE 学生端训练平台：面向医学生的 OSCE 问诊训练网站。前端
 - [ ] 证据已记录在 `feature_list.json` 或 `progress.md`
 - [ ] 仓库仍可从标准启动路径重启（`bash init.sh` 通过）
 
-## 会话结束
+## 会话结束 / End of Session
 
 结束会话前：
 

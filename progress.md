@@ -59,9 +59,10 @@
 
 ### What's Next
 
-1. 后续任一 feature 交接前，按 AGENTS.md 门禁用独立 evaluator 子代理跑 `cd frontend && bash e2e.sh`
-2.（可选）扩充 e2e 用例：新增病例/会话流、注册、个人中心等长流程
-3. 生产化加固：更换默认 `JWT_SECRET`、收紧 CORS `origins:*`、把 DeepSeek 配置正式化
+1. **当前无未完成 feature**：`feature_list.json` 10 项全 done；本会话移除 8 分钟倒计时已提交（`717923e`）。
+2. 推荐下一步：生产化加固——更换默认 `JWT_SECRET`、收紧 CORS `origins:*`、把 DeepSeek 配置正式化（环境变量或经 `/admin` 后台持久化）。
+3. 或扩充 e2e 用例：注册/登录、会话流、个人中心等长流程，并固化进 `frontend/e2e/` 供后续 evaluator 门禁复用。
+4. 任一改动交接前，按 AGENTS.md 门禁用独立 evaluator 子代理跑 `cd frontend && bash e2e.sh` 并全部通过。
 
 ## Blockers / Risks
 
@@ -83,6 +84,11 @@
 
 ## Files Modified This Session
 
+- (本会话 移除倒计时)
+  - `backend/sessions.py` — 移除 `SESSION_SECONDS`/`_deadline_expired`/时限拦截
+  - `frontend/app/pages/session/[sessionid].vue` — 移除倒计时 UI/逻辑
+  - `README.md`、`feature_list.json`、`progress.md`、`session-handoff.md` — 文档/工件更新
+  - 提交 `717923e`：`feat(session): remove 8-minute countdown / time-limit feature`（5 files, +20/−92）
 - (上一会话 feat-009)`.gitignore`、`feature_list.json`、`progress.md`
 - (本会话 feat-010)
   - `frontend/package.json` — 加 `@playwright/test` devDependency + `e2e` script
@@ -99,11 +105,13 @@
 - [x] `/api/cases` 返回 13 例（OG-002、GP-003 均在）
 - [x] 实测：病人中文开场、考官英文提问、考生用中文时考官提醒"Please answer in English"
 - [x] admin/admin123 登录正常；`deploytest01/test123456` 学生登录正常
-- [ ] 待跑：`./init.sh` 基线验证
+- [x] `./init.sh` 基线验证通过（backend import + db init + nuxt prepare）
+- [x] 独立 evaluator e2e PASS：`cd frontend && bash e2e.sh` 冒烟 2/2 + 会话流用例 1/1（倒计时已移除、全流程可用、无超时告警）
 
 ## Notes for Next Session
 
-- 服务当前在跑：后端 `127.0.0.1:5000`、前端 `127.0.0.1:3000`（DeepSeek 注入）。
-- 重启后端的标准命令见 `start-backend.bat`（Windows）或手工注入环境变量（WSL）。
+- 本会话已移除问诊会话的 8 分钟倒计时/时限（提交 `717923e`），独立 evaluator e2e PASS，仓库干净。
+- 服务不一定在跑：可用 `cd frontend && bash e2e.sh`（Playwright `webServer` 会自动拉起后端 `:5000` 与前端 `:3000`，已运行则复用）。
+- 重启后端的标准命令见 `start-backend.bat`（Windows）或手工注入环境变量（WSL）；未配置 `OPENAI_API_KEY` 时 AI 走内置 Mock（e2e 稳定）。
 - 若管理员想在后台持久配置模型：用 admin 登录 → /admin → 大模型管理（DB 配置优先于环境变量）。
 - 待办建议：换掉默认 JWT_SECRET、收紧 CORS、正式化 DeepSeek 配置。
