@@ -1,5 +1,31 @@
+import os
+
 from flask import Flask, g, jsonify
 from flask_cors import CORS
+
+
+def _load_dotenv() -> None:
+    """加载 backend/.env（git-ignored），在读取环境变量的模块导入前注入 DEEPSEEK_*/OPENAI_*。
+
+    python-dotenv 未安装，用极简解析器即可（每行 KEY=VALUE，# 注释，跳过已存在的变量）。
+    """
+    base = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(base, ".env")
+    if not os.path.exists(path):
+        return
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = value
+
+
+_load_dotenv()
 
 import admin
 import auth

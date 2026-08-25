@@ -11,24 +11,30 @@ import llm_config
 import prompts
 from case_utils import parse_patient_scenario
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY") or os.getenv("OPENAI_API_KEY")
+DEEPSEEK_BASE_URL = (
+    os.getenv("DEEPSEEK_BASE_URL") or os.getenv("OPENAI_BASE_URL") or "https://api.deepseek.com"
+)
+DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL") or os.getenv("OPENAI_MODEL") or "deepseek-v4-flash"
 
 
 def _chat_completion(messages: list[dict[str, str]], temperature: float = 0.3) -> str | None:
+    # LLM_MOCK=1 强制走内置 Mock（供确定性的端到端测试；真实训练环境不要设置）。
+    if os.getenv("LLM_MOCK") == "1":
+        return None
+
     config = llm_config.get_active_llm_config()
 
     if config and config.get("baseUrl"):
         base_url = config["baseUrl"]
-        model = config.get("model") or OPENAI_MODEL
+        model = config.get("model") or DEEPSEEK_MODEL
         headers = llm_config.build_headers(config)
     else:
-        if not OPENAI_API_KEY:
+        if not DEEPSEEK_API_KEY:
             return None
-        base_url = OPENAI_BASE_URL
-        model = OPENAI_MODEL
-        headers = {"Authorization": f"Bearer {OPENAI_API_KEY}"}
+        base_url = DEEPSEEK_BASE_URL
+        model = DEEPSEEK_MODEL
+        headers = {"Authorization": f"Bearer {DEEPSEEK_API_KEY}"}
 
     if not base_url or not model or not headers:
         return None

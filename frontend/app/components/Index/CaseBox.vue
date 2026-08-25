@@ -9,20 +9,17 @@
 
     <div v-else>
       <div class="mb-3 flex items-start justify-between gap-3">
-        <div>
-          <p class="mb-1 text-xs font-medium text-blue-600">
-            {{ departmentLabel }}
-          </p>
-          <h3 class="font-semibold text-slate-900">{{ caseItem.title }}</h3>
-        </div>
+        <p class="mb-1 text-xs font-medium text-blue-600">
+          {{ departmentLabel }}
+        </p>
+        <span class="text-xs text-slate-400">{{ caseItem.caseNo }}</span>
       </div>
 
-      <p class="mb-4 line-clamp-3 text-sm leading-6 text-slate-500">
+      <p class="mb-4 line-clamp-2 text-base font-semibold leading-6 text-slate-900">
         {{ caseItem.brief }}
       </p>
 
-      <div class="flex items-center justify-between">
-        <span class="text-xs text-slate-400">{{ caseItem.caseNo }}</span>
+      <div class="flex items-center justify-end">
         <button
           type="button"
           class="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"

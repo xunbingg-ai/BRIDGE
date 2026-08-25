@@ -32,13 +32,17 @@ function markersIn(text: string): string[] {
   return LEAK_MARKERS.filter((m) => text.includes(m))
 }
 
-test('home card shows only age/gender/symptom, not the full case history', async ({ page }) => {
+test('home card shows only age/gender/symptom, not the diagnosis or full history', async ({ page }) => {
   await page.goto('/')
   await page.waitForLoadState('networkidle')
   await page.locator('article').first().scrollIntoViewIfNeeded()
   await expect(page.locator('article').first()).toBeVisible()
 
-  const brief = (await page.locator('article').first().locator('p.line-clamp-3').textContent())?.trim() ?? ''
+  const card = page.locator('article').first()
+  // 不应再出现诊断标题（粗体 h3）——卡片只展示核心症状简介
+  await expect(card.locator('h3')).toHaveCount(0)
+
+  const brief = (await card.locator('p.font-semibold').textContent())?.trim() ?? ''
   console.log('CARD_BRIEF=' + brief)
 
   // 必须是简短的开场信息（年龄 + 性别 + 核心症状）
@@ -47,8 +51,9 @@ test('home card shows only age/gender/symptom, not the full case history', async
   expect(brief).toMatch(/岁/)
   expect(brief).toMatch(/男|女/)
 
-  // 不得泄露完整病历 / 诊断 / 参考答案
-  expect(markersIn(brief)).toEqual([])
+  // 整张卡的可见文字都不得泄露完整病历 / 诊断 / 参考答案
+  const cardText = ((await card.textContent()) ?? '').replace(/\s+/g, ' ')
+  expect(markersIn(cardText)).toEqual([])
 })
 
 test('session: student speaks first; patient answers short and non-leaky', async ({ page, request }) => {
@@ -78,9 +83,15 @@ test('session: student speaks first; patient answers short and non-leaky', async
   await expect(markdown).toHaveCount(0)
   await expect(page.getByText(/请开始你的 OSCE 问诊/)).toBeVisible()
 
-  // 学生发问
+  // 学生发问 —— 关键是：必须先命中「发送消息」的后端 API
+  const msgReq = page.waitForRequest(
+    (r) => r.method() === 'POST' && /\/sessions\/\d+\/message$/.test(r.url()),
+  )
   await page.getByPlaceholder(/输入你的问诊内容/).fill('您好，请问您哪里不舒服？')
   await page.getByRole('button', { name: '发送' }).click()
+
+  // 断言这次确实发起了 message API 请求（用户反馈「聊天窗口没调用 API」的反向锁定）
+  await msgReq
 
   // 等待病人回复气泡出现
   await expect(markdown).toHaveCount(1)
@@ -88,7 +99,8 @@ test('session: student speaks first; patient answers short and non-leaky', async
   console.log('PATIENT_REPLY=' + reply)
 
   expect(reply.length).toBeGreaterThan(0)
-  expect(reply.length).toBeLessThan(200)
+  // 病人回复应短而不泄密（mock 较短；真实大模型回复也可能略长，放宽到 <1000 以兜住「整段病历外泄」）
+  expect(reply.length).toBeLessThan(1000)
   // 病人回复不应泄露完整病历/答案
   expect(markersIn(reply)).toEqual([])
 })

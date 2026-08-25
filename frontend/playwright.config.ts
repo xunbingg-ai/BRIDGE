@@ -33,7 +33,7 @@ export default defineConfig({
   webServer: [
     {
       command:
-        "cd ../backend && ./.venv/bin/python -c \"from app import app; app.run(host='127.0.0.1', port=5000)\"",
+        "cd ../backend && LLM_MOCK=1 ./.venv/bin/python -c \"from app import app; app.run(host='127.0.0.1', port=5000)\"",
       url: `${BACKEND_URL}/api/health`,
       reuseExistingServer: true,
       timeout: 60_000,

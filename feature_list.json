@@ -43,10 +43,10 @@
     {
       "id": "feat-006",
       "name": "大模型接入（DeepSeek）",
-      "description": "OpenAI 兼容 LLM：环境变量注入（当前 DeepSeek V4 Flash），未配置时降级为内置 Mock；后台 LLM 配置优先于环境变量",
+      "description": "OpenAI 兼容 LLM：读取 backend/.env 的 DEEPSEEK_*（app.py 启动时加载），未配置时降级为内置 Mock；后台 LLM 配置（llm_configs 表）优先于环境变量；LLM_MOCK=1 强制 Mock（供确定性 e2e）",
       "dependencies": ["feat-003"],
       "status": "done",
-      "evidence": "backend/ai_service.py + llm_config.py；实测病人说中文、考官说英文语言规则生效"
+      "evidence": "backend/ai_service.py（改读 DEEPSEEK_* 并以 OPENAI_* 兜底 + LLM_MOCK 开关）+ llm_config.py + app.py（_load_dotenv 加载 .env）；实测真实 DeepSeek（deepseek-v4-flash）病人说中文、考官说英文、判卷出分，且病人按问回答、不主动泄露诊断；e2e 门禁 LLM_MOCK=1 确定性通过"
     },
     {
       "id": "feat-007",

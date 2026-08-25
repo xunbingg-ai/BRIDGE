@@ -22,6 +22,17 @@
 
 **验证：** `bash init.sh` 通过；`cd frontend && pnpm build` 通过（2.49 MB）；独立 evaluator e2e（`cd frontend && bash e2e.sh`，含 smoke.spec.ts + content-leak.spec.ts）全部通过；`/api/cases` 返回 13 例且仅含 brief 字段；osce.db 迁移后 cases 列=case_id/case_no/title/department/patient_scenario/reference_answer/is_active/created_at/updated_at（13 例）。
 
+### 复查补充（用户实测反馈后修复）
+
+**① 卡片黑体仍显示诊断 → 已去掉诊断标题**
+- 复核发现卡片 `CaseBox.vue` 的 `h3` 粗体是病例标题（即诊断名，如「社区获得性肺炎」），用户要求不显示诊断。已删除该标题，改为「门类 + 编号 + 核心症状 brief（作为粗体主文案）+ 开始练习按钮」。
+- 回归断言升级：`expect(card.locator('h3')).toHaveCount(0)`，且整张卡可见文字不含任何完整病史/诊断/答案标记。
+
+**② 接上真实大模型（此前一直没生效——根因是 `.env` 未被加载 + 读错环境变量）**
+- `backend/.env` 里本就有 `DEEPSEEK_API_KEY/BASE_URL/MODEL`（`deepseek-v4-flash`），但 `app.py` 从不加载 `.env`，且 `ai_service.py` 读的是 `OPENAI_*`（不是 `DEEPSEEK_*`），因此一直走 Mock。
+- 修复：`app.py` 启动时 `_load_dotenv()` 加载 `backend/.env`；`ai_service.py` 改为读 `DEEPSEEK_*`（并以 `OPENAI_*` 兜底）；新增 `LLM_MOCK=1` 开关强制走 Mock（供确定性 e2e 门禁）。
+- 实测：真实 DeepSeek（`deepseek-v4-flash`）下，SP 能按问题给出自然的患者口吻回答（主诉/疼痛性质/加重缓解因素各不相同），**不主动泄露诊断**；考官按规则说英文；判卷出分/报告正常。e2e 门禁后端以 `LLM_MOCK=1` 启动（确定性）；`content-leak.spec.ts` 回复长度断言放宽到 <1000 以兼容真实回复。
+
 ### 参考：旧 REGRESSION 记录（已解决）
 
 **现象（用户报告，已复现）：**
