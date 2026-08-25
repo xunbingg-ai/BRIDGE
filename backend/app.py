@@ -31,6 +31,7 @@ import admin
 import auth
 import cases
 import sessions
+import ai_service
 from database import get_db, init_db
 
 
@@ -56,7 +57,7 @@ def create_app() -> Flask:
 
     @app.get("/api/health")
     def health():
-        return jsonify({"status": "ok"})
+        return jsonify({"status": "ok", "llm": ai_service.llm_mode_info()})
 
     return app
 

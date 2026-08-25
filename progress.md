@@ -31,6 +31,8 @@
 **② 接上真实大模型（此前一直没生效——根因是 `.env` 未被加载 + 读错环境变量）**
 - `backend/.env` 里本就有 `DEEPSEEK_API_KEY/BASE_URL/MODEL`（`deepseek-v4-flash`），但 `app.py` 从不加载 `.env`，且 `ai_service.py` 读的是 `OPENAI_*`（不是 `DEEPSEEK_*`），因此一直走 Mock。
 - 修复：`app.py` 启动时 `_load_dotenv()` 加载 `backend/.env`；`ai_service.py` 改为读 `DEEPSEEK_*`（并以 `OPENAI_*` 兜底）；新增 `LLM_MOCK=1` 开关强制走 Mock（供确定性 e2e 门禁）。
+- **LLM_MOCK 仅进程级、不持久**：只写在 `frontend/playwright.config.ts` 的 e2e webServer 命令里（`LLM_MOCK=1 …`），不写入 `.env`、不写 shell、不影响用户正常启动。用户以 `python app.py` / `start-backend.bat`（均不带 LLM_MOCK）启动时，`app.py._load_dotenv()` 加载 `.env` → 直接用真实 DeepSeek。
+- **运行时确认**：`/api/health` 新增 `llm` 字段（`mode: real|mock`、`model`、`base_url`、`reason`），启动后 `curl http://127.0.0.1:5000/api/health` 即可确认是否联通真实大模型（如 `{"llm":{"mode":"real","model":"deepseek-v4-flash",...}}`）。
 - 实测：真实 DeepSeek（`deepseek-v4-flash`）下，SP 能按问题给出自然的患者口吻回答（主诉/疼痛性质/加重缓解因素各不相同），**不主动泄露诊断**；考官按规则说英文；判卷出分/报告正常。e2e 门禁后端以 `LLM_MOCK=1` 启动（确定性）；`content-leak.spec.ts` 回复长度断言放宽到 <1000 以兼容真实回复。
 
 ### 参考：旧 REGRESSION 记录（已解决）

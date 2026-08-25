@@ -18,6 +18,38 @@ DEEPSEEK_BASE_URL = (
 DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL") or os.getenv("OPENAI_MODEL") or "deepseek-v4-flash"
 
 
+def llm_mode_info() -> dict:
+    """返回当前 LLM 运行模式（供 /api/health 与管理页确认是否已联通大模型）。"""
+    if os.getenv("LLM_MOCK") == "1":
+        return {
+            "mode": "mock",
+            "reason": "LLM_MOCK=1 强制走内置 Mock（仅端到端测试使用）",
+            "model": None,
+            "base_url": None,
+        }
+    config = llm_config.get_active_llm_config()
+    if config and config.get("baseUrl"):
+        return {
+            "mode": "real",
+            "reason": "llm_configs 表配置优先",
+            "model": config.get("model") or DEEPSEEK_MODEL,
+            "base_url": config["baseUrl"],
+        }
+    if DEEPSEEK_API_KEY:
+        return {
+            "mode": "real",
+            "reason": "backend/.env 注入的 DEEPSEEK_API_KEY",
+            "model": DEEPSEEK_MODEL,
+            "base_url": DEEPSEEK_BASE_URL,
+        }
+    return {
+        "mode": "mock",
+        "reason": "未配置任何 LLM（无 DEEPSEEK_API_KEY / llm_configs）",
+        "model": None,
+        "base_url": None,
+    }
+
+
 def _chat_completion(messages: list[dict[str, str]], temperature: float = 0.3) -> str | None:
     # LLM_MOCK=1 强制走内置 Mock（供确定性的端到端测试；真实训练环境不要设置）。
     if os.getenv("LLM_MOCK") == "1":
