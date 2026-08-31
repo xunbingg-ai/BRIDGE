@@ -86,6 +86,7 @@ def _get_owned_session(session_id: int):
             c.case_no AS case_no,
             c.title AS case_title,
             c.department AS case_department,
+            c.brief AS case_brief,
             c.patient_scenario AS case_patient_scenario,
             c.reference_answer AS case_reference_answer
         FROM sessions s
@@ -133,6 +134,7 @@ def session_to_dict(row, include_case: bool = False) -> dict:
             {
                 "caseTitle": row["case_title"],
                 "department": row["case_department"],
+                "brief": row["case_brief"],
                 "referenceAnswer": row["case_reference_answer"],
                 "peFindings": sections["pe_findings"],
                 "investigations": sections["investigations"],

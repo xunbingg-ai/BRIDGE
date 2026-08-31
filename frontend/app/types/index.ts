@@ -80,6 +80,8 @@ export interface SessionDetail {
   /** 对话时长（秒），用于导出分析；未结束时为 0 */
   durationSeconds?: number
   caseTitle?: string
+  /** OSCE 开场信息：年龄 + 性别 + 一个核心症状，不含诊断/完整病史 */
+  brief?: string
   department?: string
   referenceAnswer?: string
   /** viva 阶段解密展示的体格检查客观结果（英文 markdown），无该小节时为空 */

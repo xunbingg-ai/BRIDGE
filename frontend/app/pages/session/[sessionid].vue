@@ -3,7 +3,7 @@
     <div class="mb-4 flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
       <div>
         <h1 class="font-semibold text-slate-900">
-          {{ sessionStore.current?.caseTitle || 'OSCE 会话' }}
+          {{ sessionStore.current?.brief || 'OSCE 会话' }}
         </h1>
         <p class="mt-1 text-xs text-slate-400">
           当前阶段：{{ phaseLabel }}
