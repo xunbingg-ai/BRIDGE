@@ -15,7 +15,8 @@ SCHEMA_PATH = os.path.join(BASE_DIR, "schema.sql")
 
 
 def now_iso() -> str:
-    return datetime.now().astimezone().isoformat(timespec="seconds")
+    # 毫秒精度：既作消息级时间戳（供导出对话时长分析），也是各表 updated_at 的写入值。
+    return datetime.now().astimezone().isoformat(timespec="milliseconds")
 
 
 def get_db() -> sqlite3.Connection:

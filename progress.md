@@ -2,11 +2,24 @@
 
 ## Current State
 
-**Last Updated:** 2026-08-25 (session)
-**Session ID:** dsh-session (feat-013)
-**Active Feature:** 两个用户反馈问题（feat-013）——① 查体/辅助检查结果未在会话框显示 → 引入「viva 分节 tag + 解密卡片」；② SP 被追问「请再告诉我多一点」时汇报过多 → 在 patient prompt 加「一次只回答一个信息点」。均已完成，via 独立 evaluator e2e（真实 DeepSeek API，6/6 PASS）。
+**Last Updated:** 2026-08-31 (session)
+**Session ID:** dsh-session (feat-014)
+**Active Feature:** 三个用户要求（feat-014）——① 考官（viva）结构化问答：第一个问题改为「请用一分钟概括病史」，此后每题学生答不上来只给一次 hint，再答不上来切下一题；② 查体/辅助检查结果解密卡片改英文、只含本案例结果（不含解读思路/判读/应查指导）；③ 对话加毫秒级消息时间戳并存入 content，提交时计算 duration_seconds，便于导出对话时长。**已完成并通过独立 evaluator 子代理（deepseek-v4-flash-vision-exp）端到端验证（6/6 PASS）。**
 
 ## Status
+
+### ✅ feat-014 已收尾 → 独立 evaluator e2e（deepseek-v4-flash-vision-exp）全部通过 6/6
+
+**背景：** 用户提出三个改进：① viva 考官结构化问答的骨架（首问=概括病史 + 后续每题一次 hint 后切换）；② 结果卡片要英文且只放本案例结果；③ 对话要带时间戳并入库，可导出对话时长。
+
+**实现（本会话）：**
+- ① **考官 prompt 骨架**（`backend/prompts.py`）：`examiner_system_prompt`「[How to proceed]」首项改为「summarise the patient's medical history in one minute」（因考官全程英文，故用英文实现，对应中文要求「请用一分钟时间概括病史」）；新增「[Handling an incomplete answer]」——除首问外每题若学生答不足/答不出，只给**一次**短 hint，hint 后再答不出即切下一题，绝不二次提示、绝不泄露答案。`ai_service.examiner_reply` Mock 同步改为「概括病史→诊断→鉴别→体格检查→辅助检查→处理」顺序推进。
+- ② **英文、只含结果的解密卡片**：新增 `backend/viva_results.py`（`VIVA_RESULTS_EN`，内建 12 例的 pe/investigations 英文客观结果，来自 case_content/*.md 对照翻译，只留结果、去指导/判读/解读）；`case_utils.case_viva_sections(reference_answer, case_no)` 按 case_no 优先命中英文结果，未收录病例回退旧的中文小节提取；`sessions.py` 两处调用传入 case_no。前端 `VivaResultCard`/`ChatBox` 标题与副标题改英文（Physical Examination Findings / Investigation Results / Findings revealed for this case）。
+- ③ **对话时间戳 + 时长**：`database.now_iso` 改为毫秒精度；每消息 `created_at` 即毫秒时间戳；`submit_session` 用 `_compute_duration` 写入 `content['ended_at']`/`content['duration_seconds']`；`session_to_dict`/`history_to_dict` 新增 `durationSeconds`（供导出分析）；前端类型同步。
+- **e2e**：`viva-reveal.spec.ts` 改用顺序推进状态机（hist/dx/diff/pe/inv/mgmt）规避真实模型措辞多变，并把「结束问询」改为先 `await` end-inquiry 响应再作答（否则首条答案会被路由到病人阶段造成脱节）；卡片 filter 改英文标题。（**排查记录**：最初保留的「按考官措辞关键词匹配」pickAnswer 在真实模型把首问说成「请用1分钟…总结病史」时未命中 hist 关键词，导致答非所问、考官反复重问；顺序推进 + 等待 end-inquiry 后稳定通过。）
+
+**验证：** `bash init.sh` 通过；`cd frontend && pnpm build` 通过（2.49 MB / 637 kB gzip）；**独立 evaluator 子代理（deepseek-v4-flash-vision-exp）运行 `cd frontend && bash e2e.sh` 全部通过 6/6**（smoke 2/2、content-leak 2/2、admin-case 1/1、viva-reveal 1/1；`/api/health` 确认 `mode=real`；`frontend/test-results/.last-run.json`=`{"status":"passed"}`）。
+
 
 ### ✅ feat-013 已收尾 → 独立 evaluator e2e（真实 DeepSeek）全部通过 6/6
 
@@ -147,22 +160,24 @@
 
 ### What's In Progress
 
-- 无（当前会话工作已完成）
+- 无（含 feat-014 的当前会话工作已完成）
 
 ### What's Next
 
-1. **当前无未完成 feature**：`feature_list.json` 10 项全 done；本会话移除 8 分钟倒计时已提交（`717923e`）。
-2. 推荐下一步：生产化加固——更换默认 `JWT_SECRET`、收紧 CORS `origins:*`、把 DeepSeek 配置正式化（环境变量或经 `/admin` 后台持久化）。
-3. 或扩充 e2e 用例：注册/登录、会话流、个人中心等长流程，并固化进 `frontend/e2e/` 供后续 evaluator 门禁复用。
-4. 任一改动交接前，按 AGENTS.md 门禁用独立 evaluator 子代理跑 `cd frontend && bash e2e.sh` 并全部通过。
+1. **提交本阶段改动**：`git add`（`backend/` 本案代码 + `backend/viva_results.py`、`frontend/` 本案代码 + `frontend/e2e/viva-reveal.spec.ts`、`feature_list.json`、`progress.md`、`session-handoff.md`），以描述性 message 提交到 `260824-OSCE`（用户已要求提交）。`docs/` 为参考文档（未入库，可 gitignore）。
+2. 推荐下一步：**生产化加固**——更换默认 `JWT_SECRET`、收紧 CORS `origins:*`、把 DeepSeek 配置正式化（环境变量或经 `/admin` 后台持久化）。
+3. 或扩充 e2e 用例：注册/登录、完整会话流、个人中心等长流程，并固化进 `frontend/e2e/` 供后续 evaluator 门禁复用。
+4. 任一改动交接前，按 AGENTS.md 门禁用独立 evaluator 子代理（模型 `deepseek-v4-flash-vision-exp`）跑 `cd frontend && bash e2e.sh` 并全部通过。
 
 ## Blockers / Risks
 
 - [x] 已解决：前端 Tailwind v4/v3 冲突（残留 `node_modules/tailwindcss@4`）
 - [x] 已解决：病例库丢失 OG-002（已从 `seed_data.py` 补回）
+- [x] 已解决：真实模型下 viva-reveal 用例的旧「按考官措辞关键词匹配」脱节（已改顺序推进状态机 + 等待 end-inquiry）
 - [ ] 风险：`JWT_SECRET` 仍用默认 `dev-secret-*`，生产需更换
 - [ ] 风险：CORS 当前允许所有来源（`origins: *`），上线前需收紧
 - [ ] 风险：DeepSeek key 通过环境变量注入，未落盘；重启后端需重新注入环境变量
+- [ ] 关注：卡片英文结果手工维护在 `backend/viva_results.py`，不随 `reference_answer` 自动生成；管理员导入的新病例卡片会回退到中文小节提取
 
 ## Decisions Made
 

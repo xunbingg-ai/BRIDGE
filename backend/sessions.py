@@ -44,6 +44,19 @@ def _initial_content(session_id: int, case_id: int) -> dict:
     }
 
 
+def _compute_duration(content: dict, ended_at: str) -> float:
+    """按会话开始与结束的时间戳计算对话时长（秒），供导出分析。"""
+    started_at = content.get("started_at") or ""
+    if not started_at:
+        return 0.0
+    try:
+        start = datetime.fromisoformat(started_at)
+        end = datetime.fromisoformat(ended_at)
+        return round(max(0.0, (end - start).total_seconds()), 1)
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def _append_message(content: dict, phase: str, role: str, text: str) -> dict:
     messages = content.setdefault(f"{phase}_phase", [])
     messages.append(
@@ -93,11 +106,12 @@ def _case_payload(row) -> dict:
         "reference_answer": row["case_reference_answer"],
     }
     # 补充「体检 / 辅助检查」客观结果，供 viva 阶段解密卡片使用（见 prompts.viva 分节 tag）。
-    payload.update(case_viva_sections(row["case_reference_answer"]))
+    payload.update(case_viva_sections(row["case_reference_answer"], row["case_no"]))
     return payload
 
 
 def session_to_dict(row, include_case: bool = False) -> dict:
+    parsed_content = _parse_json(row["content"], {})
     data = {
         "sessionId": row["session_id"],
         "userId": row["user_id"],
@@ -105,14 +119,16 @@ def session_to_dict(row, include_case: bool = False) -> dict:
         "createAt": row["create_at"],
         "deadlineAt": row["deadline_at"],
         "status": row["status"],
-        "content": _parse_json(row["content"], {}),
+        "content": parsed_content,
         "score": _parse_json(row["score"]),
         "report": _parse_json(row["report"]),
         "endedAt": row["ended_at"],
         "updatedAt": row["updated_at"],
+        # 对话时长（秒），用于导出分析；未结束时为 0。
+        "durationSeconds": parsed_content.get("duration_seconds") or 0,
     }
     if include_case:
-        sections = case_viva_sections(row["case_reference_answer"])
+        sections = case_viva_sections(row["case_reference_answer"], row["case_no"])
         data.update(
             {
                 "caseTitle": row["case_title"],
@@ -127,6 +143,7 @@ def session_to_dict(row, include_case: bool = False) -> dict:
 
 def history_to_dict(row) -> dict:
     score = _parse_json(row["score"], {})
+    content = _parse_json(row["content"], {})
     return {
         "sessionId": row["session_id"],
         "caseId": row["case_id"],
@@ -136,6 +153,8 @@ def history_to_dict(row) -> dict:
         "createAt": row["create_at"],
         "endedAt": row["ended_at"],
         "totalScore": score.get("total_score"),
+        # 对话时长（秒），用于导出分析；未结束时为 0。
+        "durationSeconds": content.get("duration_seconds") or 0,
     }
 
 
@@ -339,6 +358,9 @@ def submit_session(session_id: int):
 
     content = _append_message(content, "examiner", "system", "考生提交审查，等待评分。")
     now = now_iso()
+    # 记录对话结束时间与总时长（毫秒级时间戳，供之后导出对话时长分析）。
+    content["ended_at"] = now
+    content["duration_seconds"] = _compute_duration(content, now)
     g.db.execute(
         """
         UPDATE sessions
@@ -366,7 +388,7 @@ def list_sessions():
     rows = g.db.execute(
         """
         SELECT
-            s.session_id, s.case_id, s.status, s.create_at, s.ended_at, s.score,
+            s.session_id, s.case_id, s.status, s.create_at, s.ended_at, s.score, s.content,
             c.title AS case_title, c.department AS case_department
         FROM sessions s
         JOIN cases c ON c.case_id = s.case_id

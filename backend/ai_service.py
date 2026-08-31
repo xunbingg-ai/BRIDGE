@@ -125,28 +125,31 @@ def examiner_reply(case: dict[str, Any], messages: list[dict[str, str]]) -> str:
     if ai_reply:
         return ai_reply
 
-    # Mock 降级：按 5 段顺序推进，并在「体格检查」「辅助检查」小节结束后输出
-    # [PART: pe] / [PART: investigations] 分节标记（供前端解密对应的结果卡片）。
+    # Mock 降级：按「概括病史 → 诊断 → 鉴别 → 体格检查 → 辅助检查 → 处理」顺序推进，
+    # 并在「体格检查」「辅助检查」小节结束后输出 [PART: pe] / [PART: investigations] 分节标记
+    # （供前端解密对应的结果卡片）。
     count = len([m for m in messages if m.get("role") == "user"])
     if count == 0:
-        return "Thank you for completing the history. What would you consider the most likely diagnosis, and on what evidence?"
+        return "Please summarise the patient's medical history in one minute."
     if count == 1:
-        return "What are your differential diagnoses, and how would you distinguish between them?"
+        return "Thank you. What do you consider the most likely diagnosis, and on what evidence?"
     if count == 2:
-        return "What physical examination would you perform, and what findings would you expect in this case?"
+        return "What are your differential diagnoses, and how would you distinguish between them?"
     if count == 3:
+        return "What physical examination would you perform, and what findings would you expect in this case?"
+    if count == 4:
         return (
             "Your physical-examination approach is reasonable.\n\n"
             "[PART: pe]\n\n"
             "Now, what investigations would you order, and what results do you expect?"
         )
-    if count == 4:
+    if count == 5:
         return (
             "Your investigation plan is appropriate.\n\n"
             "[PART: investigations]\n\n"
             "What is your management plan, red flags, and referral criteria?"
         )
-    if count == 5:
+    if count == 6:
         return "Please summarise your overall management and follow-up plan in one or two sentences."
     return "Thank you. When you are ready, please submit your review."
 

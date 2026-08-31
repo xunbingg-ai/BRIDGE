@@ -77,12 +77,14 @@ export interface SessionDetail {
   report: ReportData | null
   endedAt: string | null
   updatedAt: string
+  /** 对话时长（秒），用于导出分析；未结束时为 0 */
+  durationSeconds?: number
   caseTitle?: string
   department?: string
   referenceAnswer?: string
-  /** viva 阶段解密展示的体格检查客观结果（markdown），无该小节时为空 */
+  /** viva 阶段解密展示的体格检查客观结果（英文 markdown），无该小节时为空 */
   peFindings?: string
-  /** viva 阶段解密展示的辅助检查结果（markdown），无该小节时为空 */
+  /** viva 阶段解密展示的辅助检查结果（英文 markdown），无该小节时为空 */
   investigations?: string
 }
 
@@ -95,6 +97,8 @@ export interface SessionHistoryItem {
   createAt: string
   endedAt: string | null
   totalScore: number | null | undefined
+  /** 对话时长（秒），用于导出分析；未结束时为 0 */
+  durationSeconds?: number
 }
 
 export interface PagedResult<T> {

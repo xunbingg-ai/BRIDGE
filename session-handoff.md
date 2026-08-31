@@ -2,10 +2,44 @@
 
 ## Current Objective
 
-- **Status（feat-013 已收尾）：** 本阶段解决两个用户反馈的问题，均已完成并通过独立 evaluator e2e（真实 DeepSeek API，6/6 PASS）：
-  1. **查体 / 辅助检查结果在会话框中显示** → 参考前身 repo 的「viva 分节 tag + 解密卡片」方案：考官在「体格检查/辅助检查」小节点评后输出 `[PART: pe]` / `[PART: investigations]` 标记，前端把它从 UI 剥掉并在该消息处解密一张结果卡片（数据来自 reference_answer 的 `### 体格检查 / ### 辅助检查` 小节，经后端提取为 session.case 的 `peFindings/investigations`）。
-  2. **SP 被追问「请再告诉我多一点」时一次只答一个信息点** → 在 `patient_system_prompt` 加入「每次只回答一个信息点，一次最多只给一个新细节」的强制约束。
+- **Status（feat-014 已收尾）：** 本阶段实现三个用户要求，均已完成并通过独立 evaluator e2e（模型 deepseek-v4-flash-vision-exp，真实 DeepSeek API，6/6 PASS）：
+  1. **考官（viva）结构化问答骨架**：第一个问题改为「请用一分钟概括病史」，此后每个问题若学生答不上来只给一次 hint，一次 hint 后再答不上来就切换下一题（绝不二次提示 / 泄露答案）。
+  2. **查体 / 辅助检查结果解密卡片改英文、只含结果**：卡片标题与副标题改英文，内容只放本案例客观结果，去掉「应查什么」指导 / 解读思路（判读）/「不常规需要」等说明。
+  3. **对话时间戳 + 时长**：消息级毫秒时间戳存入 content，提交时计算 `duration_seconds`，对外暴露 `durationSeconds`，便于之后导出对话时长分析。
 - **Branch / commit:** `260824-OSCE`。本次改动**尚未提交**（用户未要求提交；`git status` 见 Files Changed）。
+- **e2e 关键经验**：真实模型把首问说成「请用1分钟…总结病史」时，按措辞做关键词匹配的旧 pickAnswer 会漏判 hist → 答非所问 → 考官反复重问而脱节。已改为「顺序推进状态机」（hist/dx/diff/pe/inv/mgmt），并在「结束问询」后 `await` end-inquiry 响应再作答（否则首条答案会被路由到病人阶段）。
+
+## 已解决（本阶段 feat-014）
+
+### ① 考官结构化问答：首问=概括病史 + 每题一次 hint（Problem 1）
+- `backend/prompts.py` `examiner_system_prompt`：
+  - `[How to proceed]` 现为 6 项：1) 概括病史（opening）→ 2) 诊断 → 3) 鉴别 → 4) 体格检查 → 5) 辅助检查 → 6) 处理/随访。
+  - 新增 `[Handling an incomplete answer]`：除首问外，学生答不足/答不出只给**一次**短 hint（不泄露答案）；hint 后再答不出即切下一题；绝不二次提示。
+  - 保留 `[PART: pe]` / `[PART: investigations]` 分节标记与「不得在问题/点评中泄露查体/检查结果」。
+- `backend/ai_service.py` `examiner_reply` Mock 同步为「概括病史→诊断→鉴别→体格检查→辅助检查→处理」顺序推进（LLM_MOCK 生效时）。
+
+### ② 英文、只含结果的解密卡片（Problem 2）
+- 新增 `backend/viva_results.py`：`VIVA_RESULTS_EN`，内建 12 例的 `pe`/`investigations` **英文客观结果**（GP-003 无该小节不收录）。来源 = `case_content/*.md` 对照翻译整理，只留本案例结果，去指导/判读/解读/「不常规需要」。
+- `case_utils.case_viva_sections(reference_answer, case_no)`：按 `case_no` 优先命中英文结果；未收录病例（如 CSV 导入）回退到旧中文小节提取。`sessions.py` 两处调用传入 `case_no`。
+- 前端 `VivaResultCard`/`ChatBox`：标题改英文（Physical Examination Findings / Investigation Results），副标题改英文（Findings revealed for this case）。
+
+### ③ 对话时间戳 + 时长（Problem 3）
+- `backend/database.py` `now_iso()` 改为**毫秒精度**；每消息 `created_at` 即毫秒时间戳（存入 content）。
+- `backend/sessions.py`：新增 `_compute_duration`；`submit_session` 写 `content['ended_at']` / `content['duration_seconds']`；`session_to_dict` / `history_to_dict` 新增 `durationSeconds`（供导出分析）。前端 `types` 增 `durationSeconds`。
+- 每消息已有 `created_at`（毫秒）；`content.started_at` / `ended_at` / `duration_seconds` 齐备。
+
+## Verification / DoD
+- `bash init.sh` 通过；`cd frontend && pnpm build` 通过（2.49 MB / 637 kB gzip）。
+- **独立 evaluator 子代理（模型 deepseek-v4-flash-vision-exp）** 运行 `cd frontend && bash e2e.sh` **全部通过 6/6**：smoke 2/2、content-leak 2/2、admin-case 1/1、viva-reveal 1/1；`/api/health` 确认 `mode=real`；`frontend/test-results/.last-run.json` = `{"status":"passed"}`。
+- e2e 关键点：**不使用 LLM_MOCK**（playwright.config 已去掉；真实模型）。`viva-reveal.spec.ts` 改为顺序推进状态机 + 等待 end-inquiry。
+- 环境：e2e 结束后端口 5000/3000 有后台任务在跑（可自行 job_kill；或保留供人工复核）。
+
+## 小提醒
+- 真实模型首问措辞多变（中文「请用1分钟…总结病史」/ 英文「summarise … in one minute」），e2e 已用顺序推进规避；若后续给医生/考官换模型，需复核 `viva-reveal.spec.ts` 的推进策略。
+- 卡片内容为只含结果的英文，来自 `viva_results.py`；若后续修改某个 case 的体格检查/辅助检查结果，需同步更新 `viva_results.py` 对应项（该表不随 reference_answer 自动生成）。
+- 管理员通过 CSV/后台导入的新病例不含英文结果，卡片会回退到中文小节提取。
+
+
 
 ## 已解决（本阶段 feat-013）
 
@@ -144,12 +178,12 @@
 1. `pwd` 确认工作目录为仓库根 `/mnt/d/BRIDGE`。
 2. Read `AGENTS.md`（启动流程、工作规则、完成定义、端到端验证门禁）。
 3. Read `feature_list.json`（功能状态事实来源）与 `progress.md`（本会话日志）。
-4. **先读本文件「REGRESSION — 内容泄漏」段**：这是当前最优先要修的问题。
-5. 运行 `bash init.sh` 验证基线（后端 import/db 迁移 + 前端 nuxt prepare）。
-6. 当前后端 :5000、前端 :3000 有后台任务在跑（job bash-3 / bash-4，内容已写入但泄漏未修），可用 `job_kill` 停掉后重新启动；本环境 shell 有 HTTP 代理（`http_proxy=http://172.26.64.1:7897`）会拦 localhost，用 curl 自查要加 `--noproxy '*'`，浏览器直接访问不受影响。
+4. 运行 `bash init.sh` 验证基线（后端 import/db 迁移 + 前端 nuxt prepare）。
+5. 若要跑 e2e：`cd frontend && bash e2e.sh`（Playwright webServer 自动拉起后端 :5000 + 前端 :3000，已运行则复用）。本环境 shell 有 HTTP 代理（`http_proxy=http://172.26.64.1:7897`）会拦 localhost，用 curl 自查要加 `--noproxy '*'`；`e2e.sh` 已绕过代理，浏览器直接访问不受影响。
 
 ## Recommended Next Step
 
-- **feat-012 已收尾（无需再修内容泄漏）。** 独立 evaluator e2e（`cd frontend && bash e2e.sh`，含 `smoke.spec.ts` + `content-leak.spec.ts`）已全部通过；`bash init.sh`、`pnpm build` 通过。
-- 提交本阶段改动：`git add`（`backend/` 本案代码 + `case_utils.py`、内容管线脚本、`frontend/` 本案代码 + `e2e/content-leak.spec.ts`、`case_content/`、`feature_list.json`、`progress.md`、`session-handoff.md`、`.gitignore`），`git commit` 并 push 到 `origin/260824-OSCE`。`docs/` 为参考文档（未入库，可 gitignore）。
-- 后续可做生产化加固：更换默认 `JWT_SECRET`、收紧 CORS `origins:*`、正式化 DeepSeek 配置；或扩充 e2e 用例（注册/登录、完整会话流、个人中心）。
+- **feat-014 已收尾并提交。** 独立 evaluator 子代理（模型 `deepseek-v4-flash-vision-exp`）运行 `cd frontend && bash e2e.sh` 已全部通过（6/6；`/api/health` mode=real；`.last-run.json`=passed）；`bash init.sh`、`pnpm build` 通过。
+- 建议下一步：**生产化加固**——更换默认 `JWT_SECRET`、收紧 CORS `origins:*`、把 DeepSeek 配置正式化（环境变量或经 `/admin` 后台持久化）。
+- 或扩充 e2e 用例：注册/登录、完整会话流、个人中心等长流程，并固化进 `frontend/e2e/`。
+- 注意：卡片英文结果维护在 `backend/viva_results.py`（不随 reference_answer 自动生成）；管理员导入的新病例卡片回退到中文小节提取。

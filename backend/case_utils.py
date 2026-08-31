@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import re
 
+from viva_results import VIVA_RESULTS_EN
+
 # 病人剧本里可识别的小节标题
 _SECTION_ORDER = ("一般情况", "主诉", "现病史", "既往史")
 
@@ -82,13 +84,23 @@ def _extract_markdown_section(text: str, title: str) -> str:
     return m.group(1).strip() if m else ""
 
 
-def case_viva_sections(reference_answer: str) -> dict[str, str]:
-    """从参考答案提取需要在「viva 阶段解密展示」的客观结果。
+def case_viva_sections(reference_answer: str, case_no: str | None = None) -> dict[str, str]:
+    """提取需要在「viva 阶段解密展示」的客观结果（结果卡片内容）。
 
-    - ``pe_findings``：``### 体格检查`` 小节完整内容（含本病例客观查体发现）。
-    - ``investigations``：``### 辅助检查`` 小节完整内容（含本病例具体结果与判读）。
-    缺失时对应键为空字符串（前端据此隐藏解密卡片）。
+    优先返回**英文、只含客观结果**的内容（``VIVA_RESULTS_EN``，按 case_no 命中），
+    这是内建病例在 viva 阶段解密卡片使用的标准内容：
+    - ``pe_findings``：英文体格检查客观发现（不包含「应查什么」的指导或解读）。
+    - ``investigations``：英文辅助检查结果（不含目的 / 判读 / 指南说明）。
+
+    未收录的病例（如 CSV 导入、或 GP-003 无对应小节）回退到从 ``reference_answer``
+    直接提取对应的中文小节（旧行为）。缺省键为空字符串（前端据此隐藏解密卡片）。
     """
+    section = VIVA_RESULTS_EN.get(case_no or "")
+    if section:
+        return {
+            "pe_findings": section.get("pe", ""),
+            "investigations": section.get("investigations", ""),
+        }
     return {
         "pe_findings": _extract_markdown_section(reference_answer, "体格检查"),
         "investigations": _extract_markdown_section(reference_answer, "辅助检查"),

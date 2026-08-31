@@ -4,7 +4,7 @@
       <span class="rounded-full bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white">
         🔍 {{ title }}
       </span>
-      <span class="text-xs text-slate-500">检查结果（本题已揭晓）</span>
+      <span class="text-xs text-slate-500">Findings revealed for this case</span>
     </div>
     <div class="markdown-body" v-html="renderedContent" />
   </div>

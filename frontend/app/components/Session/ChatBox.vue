@@ -36,12 +36,12 @@
     <template v-if="message.role === 'assistant' && parts.length">
       <VivaResultCard
         v-if="parts.includes('pe') && peFindings"
-        title="体格检查结果"
+        title="Physical Examination Findings"
         :content="peFindings"
       />
       <VivaResultCard
         v-if="parts.includes('investigations') && investigations"
-        title="辅助检查结果"
+        title="Investigation Results"
         :content="investigations"
       />
     </template>
