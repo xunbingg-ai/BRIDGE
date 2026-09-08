@@ -1,0 +1,39 @@
+# ---- VCS / agent tooling -------------------------------------------------
+.git
+.gitignore
+.agents
+.agent-teams
+.superpowers
+.pnpm-store
+.docker-config
+
+# ---- dependencies (reinstalled inside the image) ------------------------
+**/node_modules
+backend/.venv
+
+# ---- build output (rebuilt inside the image) ---------------------------
+frontend/.nuxt
+frontend/.output
+frontend/dist
+frontend/test-results
+frontend/playwright-report
+frontend/e2e
+frontend/playwright.config.ts
+frontend/e2e.sh
+**/__pycache__
+**/*.py[cod]
+
+# ---- local state & secrets (must never be baked into the image) --------
+backend/osce.db
+backend/osce.db-journal
+backend/osce.db-wal
+backend/.env
+
+# ---- docs / samples not needed at runtime ------------------------------
+docs
+*.md
+case_content
+osce-cases
+osce-demo
+dsh-osce-simple
+EasyMED*

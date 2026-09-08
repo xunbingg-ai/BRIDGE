@@ -2,11 +2,26 @@
 
 ## Current State
 
-**Last Updated:** 2026-08-31 (session)
-**Session ID:** dsh-session (feat-014)
-**Active Feature:** 三个用户要求（feat-014）——① 考官（viva）结构化问答：第一个问题改为「请用一分钟概括病史」，此后每题学生答不上来只给一次 hint，再答不上来切下一题；② 查体/辅助检查结果解密卡片改英文、只含本案例结果（不含解读思路/判读/应查指导）；③ 对话加毫秒级消息时间戳并存入 content，提交时计算 duration_seconds，便于导出对话时长。**已完成并通过独立 evaluator 子代理（deepseek-v4-flash-vision-exp）端到端验证（6/6 PASS）。**
+**Last Updated:** 2026-09-09 (session)
+**Session ID:** dsh-session (feat-015)
+**Active Feature:** feat-015 —— Docker 封装与部署：把 Flask 后端 + Nuxt 4 前端打包成单镜像 `osce:latest`（只暴露 3000，SQLite 落 /data volume），并创建运行实例。**已构建镜像、创建实例，并通过独立 evaluator 子代理端到端验证（Playwright 6/6 PASS，真实 DeepSeek）。**
 
 ## Status
+
+### ✅ feat-015 已收尾 → 独立 evaluator e2e 全部通过 6/6
+
+**背景：** 用户要求把项目用 Docker 封装成镜像，方便部署到别人电脑/服务器（免装 Python/Node/pnpm 依赖），并要求用子代理独立完成端到端验证。
+
+**关键约束（实测/查源码得到）：**
+- 前端 `/api/**` 的反向代理目标**构建期烘焙**进 `frontend/.output/server/chunks/nitro/nitro.mjs`（`_inlineRuntimeConfig.nitro.routeRules` → `http://127.0.0.1:5000/api/**`）。→ 采用**单镜像双进程**方案，同容器内 `127.0.0.1:5000` 天然成立，零额外配置；若拆两个容器，可用 `NUXT_NITRO_ROUTE_RULES` 在运行时改目标（已实测有效，机制见 Nitro `src/runtime/internal/runtime-config.ts` 的 `applyEnv`）。
+- `init_db()` 只在 `app.py` 的 `__main__` 里调用 → gunicorn 启动不会建表/种子，entrypoint 必须显式跑一次。
+- `ai_service.py` 单次 LLM 调用 `timeout=90` → gunicorn 默认 30s 会杀请求，必须 `--timeout 180` + `gthread`。
+- Nuxt 4.5.2 engines 要求 Node `^22.19 || ^24.11 || >=26` → 基础镜像 `node:24-bookworm-slim`。
+- `database.py` 的 `DB_PATH` 写死 → 改为支持 `OSCE_DB_PATH`（**唯一代码改动**），使 SQLite 及其 journal 都落在 volume 上。
+
+**实现：** 新增 `.dockerignore`（排除 node_modules/.venv/.output/本地 DB/.env 等）、`docker/Dockerfile`（两阶段：node 构建 `.output` → python 运行时 `COPY --from=node:24-bookworm-slim /usr/local` 带进 node）、`docker/entrypoint.sh`（init_db → gunicorn 127.0.0.1:5000 → Nitro 0.0.0.0:3000，带信号转发与任一进程退出即整体退出）。
+
+**验证：** 镜像 406MB；容器 8s 到 healthy；`GET /` 200(97ms)；`/api/health` 经 Nitro 代理返回 `mode=real`；`/data/osce.db` 种子 13 例 + admin；`docker stop` 0.486s（ExitCode 143）；重启后新建病例仍在。安全：镜像内无 `backend/.env`/`osce.db`，真实 API key 全文扫描镜像与 `docker history` 0 命中；宿主 5000 连接被拒、仅 3000 可达。**独立 evaluator 子代理**用改写过 API 基址（5000→容器 3100）的 Playwright 配置直打容器，`6 passed (39.2s)`（admin-case 1、content-leak 2、smoke 2、viva-reveal 1）。
 
 ### ✅ feat-014 已收尾 → 独立 evaluator e2e（deepseek-v4-flash-vision-exp）全部通过 6/6
 
@@ -191,7 +206,14 @@
 
 ## Files Modified This Session
 
-- (本会话 移除倒计时)
+- (本会话 feat-015 Docker 封装)
+  - `.dockerignore` — 新增（构建上下文瘦身 + 排除密钥/本地 DB）
+  - `docker/Dockerfile` — 新增（两阶段：node 构建前端 → python 运行时跑 gunicorn + Nitro）
+  - `docker/entrypoint.sh` — 新增（init_db → gunicorn → Nitro，信号转发）
+  - `backend/database.py` — `DB_PATH` 支持 `OSCE_DB_PATH`（唯一代码改动）
+  - `docs/docker-deployment.md` — 新增（方案 + 实测结果；注：`docs/` 被 .gitignore 忽略，不入库）
+  - `feature_list.json`、`progress.md` — 状态更新
+- (上一会话 移除倒计时)
   - `backend/sessions.py` — 移除 `SESSION_SECONDS`/`_deadline_expired`/时限拦截
   - `frontend/app/pages/session/[sessionid].vue` — 移除倒计时 UI/逻辑
   - `README.md`、`feature_list.json`、`progress.md`、`session-handoff.md` — 文档/工件更新
@@ -214,9 +236,15 @@
 - [x] admin/admin123 登录正常；`deploytest01/test123456` 学生登录正常
 - [x] `./init.sh` 基线验证通过（backend import + db init + nuxt prepare）
 - [x] 独立 evaluator e2e PASS：`cd frontend && bash e2e.sh` 冒烟 2/2 + 会话流用例 1/1（倒计时已移除、全流程可用、无超时告警）
+- [x] **feat-015（本会话）**：`docker build` 成功（406MB）；容器 `osce` 运行中（3000，healthy）；`docker stop` 0.486s；重启后数据仍在；镜像内无密钥/本地 DB（真实 key 全文扫描 0 命中）；**独立 evaluator 子代理 Playwright 6/6 PASS（39.2s，真实 DeepSeek）**
 
 ## Notes for Next Session
 
+- **Docker 实例已在跑**：`osce` 容器（`osce:latest`，端口 3000，卷 `osce-data`）。重启机器后 `docker start osce` 即可；查看 `docker logs -f osce`。
+- 重新构建：`docker build -f docker/Dockerfile -t osce:latest .`（构建上下文在 /mnt/d 上，`.dockerignore` 已排除 node_modules，约 7MB）。
+- 部署到别处：`docker push` 后目标机器 `docker run -d -p 3000:3000 -e DEEPSEEK_API_KEY=... -e ADMIN_PASSWORD=... -v osce-data:/data <镜像>`；**正式部署务必改默认 admin/admin123**。
+- 若要把前后端拆成两个容器：前端容器加 `NUXT_NITRO_ROUTE_RULES` 指向 `http://backend:5000`（运行时生效，无需重建镜像）。
+- 开发模式仍走本地：`bash init.sh` / `cd frontend && bash e2e.sh`（注意：若容器占用 3000，e2e 的 webServer 会复用容器、且会在本地另起 5000，二者混用会干扰，先 `docker stop osce`）。
 - 本会话已移除问诊会话的 8 分钟倒计时/时限（提交 `717923e`），独立 evaluator e2e PASS，仓库干净。
 - 服务不一定在跑：可用 `cd frontend && bash e2e.sh`（Playwright `webServer` 会自动拉起后端 `:5000` 与前端 `:3000`，已运行则复用）。
 - 重启后端的标准命令见 `start-backend.bat`（Windows）或手工注入环境变量（WSL）；未配置 `OPENAI_API_KEY` 时 AI 走内置 Mock（e2e 稳定）。

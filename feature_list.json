@@ -111,6 +111,14 @@
       "dependencies": ["feat-013"],
       "status": "done",
       "evidence": "后端：prompts.examiner_system_prompt 新增『[How to proceed] 第 1 项=概括病史』与『[Handling an incomplete answer] 每题最多一次 hint、仍答不出即切下一题、绝不二次提示/泄露答案』；ai_service.examiner_reply Mock 改为『概括病史→诊断→鉴别→体格检查→辅助检查→处理』顺序推进。新增 backend/viva_results.py（VIVA_RESULTS_EN：内建 12 例的英文、只含客观结果的 pe/investigations，来自 case_content/*.md 翻译整理）；case_utils.case_viva_sections(reference_answer, case_no) 优先按 case_no 返回英文结果，未收录病例回退到中文小节提取；sessions.py 两处调用传入 case_no。database.now_iso 改为毫秒精度；sessions._compute_duration + submit 时写 content['ended_at']/content['duration_seconds']，session_to_dict/history_to_dict 增加 durationSeconds。前端：VivaResultCard 标题与副标题改英文（Physical Examination Findings / Investigation Results / Findings revealed for this case）；ChatBox 传英文标题；types 增 durationSeconds。e2e：viva-reveal.spec.ts 改用顺序推进（hist/dx/diff/pe/inv/mgmt 状态机）规避真实模型措辞多变，并在结束问询前 await end-inquiry 响应避免答案被路由到病人阶段；卡片 filter 改英文标题。验证：bash init.sh 通过；cd frontend && pnpm build 通过（2.49 MB / 637 kB gzip）；**独立 evaluator 子代理（deepseek-v4-flash-vision-exp）运行 cd frontend && bash e2e.sh 全部通过 6/6**（smoke 2/2、content-leak 2/2、admin-case 1/1、viva-reveal 1/1；/api/health 确认 mode=real；test-results/.last-run.json={\"status\":\"passed\"}）。"
+    },
+    {
+      "id": "feat-015",
+      "name": "Docker 封装与部署（单镜像：Flask + Nuxt）",
+      "description": "把后端（Flask + gunicorn）与前端（Nuxt 4 / Nitro）封装成单个镜像 osce:latest，只对外暴露 3000 端口；SQLite 落在 /data volume；entrypoint 幂等 init_db 后启动 gunicorn(127.0.0.1:5000) 与 Nitro(0.0.0.0:3000)，由 Nitro 的 /api/** 代理转发到 gunicorn；密钥与本地 DB 经 .dockerignore 排除、运行时注入。",
+      "dependencies": ["feat-010"],
+      "status": "done",
+      "evidence": "新增 .dockerignore、docker/Dockerfile、docker/entrypoint.sh；backend/database.py 的 DB_PATH 支持 OSCE_DB_PATH（唯一代码改动）。实测：镜像 406MB；容器 8s 到 healthy；GET / → 200(97ms)；/api/health 经 Nitro 代理返回 mode=real(deepseek-v4-flash)；/data/osce.db 种子 13 例 + admin；docker stop 0.486s（ExitCode 143）；重启后新建病例仍在（volume 持久化）。安全：镜像内无 backend/.env、无 osce.db；用真实 DEEPSEEK_API_KEY 全文（文本+二进制）扫描镜像文件系统与 docker history 均 0 命中（grep gunicorn 阳性对照有效）；宿主 127.0.0.1:5000 连接被拒，仅 3000 可达。独立 evaluator 子代理端到端 Playwright 6/6 PASS（39.2s，真实 DeepSeek）：admin-case 1/1、content-leak 2/2、smoke 2/2、viva-reveal 1/1（API 基址改为容器 3100 端口，无 webServer，直打容器）。"
     }
   ]
 }

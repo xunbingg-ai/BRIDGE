@@ -10,7 +10,8 @@ from case_utils import CARD_BRIEFS, derive_patient_brief
 from seed_data import CASES
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "osce.db")
+# 允许用环境变量把数据库（及其 -journal/-wal）放到数据卷上；未设置时保持原行为。
+DB_PATH = os.getenv("OSCE_DB_PATH") or os.path.join(BASE_DIR, "osce.db")
 SCHEMA_PATH = os.path.join(BASE_DIR, "schema.sql")
 
 
